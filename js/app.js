@@ -71,7 +71,6 @@ document.getElementById('createRoomBtn').addEventListener('click', () => {
 document.getElementById('joinRoomBtn').addEventListener('click', () => {
     const code = document.getElementById('roomCode').value.trim().toUpperCase();
     if (code.length >= 3) {
-        // Mostra o modal de entrada
         showJoinModal(code);
     } else {
         alert('Digite um código de sala válido.');
@@ -86,9 +85,8 @@ document.getElementById('backFromCreate').addEventListener('click', () => {
     showScreen('homeScreen');
 });
 
-// ============ MODAL DE ENTRADA (SUBSTITUI O PROMPT FEIO) ============
+// ============ MODAL DE ENTRADA ============
 function showJoinModal(roomCode) {
-    // Cria o modal dinamicamente
     const modal = document.createElement('div');
     modal.id = 'joinModal';
     modal.style.cssText = `
@@ -156,7 +154,6 @@ function showJoinModal(roomCode) {
     
     document.body.appendChild(modal);
     
-    // Selecionar personagem no modal
     modal.querySelectorAll('.join-char').forEach(el => {
         el.addEventListener('click', () => {
             modal.querySelectorAll('.join-char').forEach(e => e.style.borderColor = 'rgba(255,255,255,0.1)');
@@ -166,14 +163,12 @@ function showJoinModal(roomCode) {
         });
     });
     
-    // Confirmar entrada
     document.getElementById('confirmJoinBtn').addEventListener('click', () => {
         const name = document.getElementById('joinNameInput').value.trim();
         if (!name) { alert('Digite seu nome!'); return; }
         if (!joinCharacter) { alert('Escolha um personagem!'); return; }
         
         document.body.removeChild(modal);
-        // Chama a função de entrar na sala com os dados
         executeJoinRoom(roomCode, name, joinCharacter);
     });
     
@@ -182,7 +177,6 @@ function showJoinModal(roomCode) {
     });
 }
 
-// Função separada para executar a entrada na sala
 function executeJoinRoom(code, name, character) {
     const roomRef = db.ref('rooms/' + code);
     roomRef.once('value').then(snapshot => {
@@ -208,7 +202,7 @@ function executeJoinRoom(code, name, character) {
         GameState.roomId = code;
         GameState.playerId = generatePlayerId();
         GameState.isHost = false;
-        GameState.maxPlayers = data.maxPlayers; // IMPORTANTE: pega do Firebase
+        GameState.maxPlayers = data.maxPlayers;
         
         const playerData = {
             id: GameState.playerId,
@@ -333,7 +327,6 @@ function listenRoomChanges() {
         
         const data = snapshot.val();
         
-        // Atualiza o maxPlayers a partir do Firebase (importante para modos 2/3)
         if (data.maxPlayers) {
             GameState.maxPlayers = data.maxPlayers;
         }
@@ -343,9 +336,14 @@ function listenRoomChanges() {
             updateLobby();
         }
         
-        // Transições de estado
+        // ============ TRANSIÇÃO PARA SELEÇÃO DE CARGOS ============
         if (data.status === 'roles' && GameState.currentScreen !== 'roleSelectionScreen') {
             showScreen('roleSelectionScreen');
+            setupRoles(data);
+        }
+        
+        // ============ SE JÁ ESTÁ NA TELA DE CARGOS, ATUALIZA EM TEMPO REAL ============
+        if (data.status === 'roles' && GameState.currentScreen === 'roleSelectionScreen') {
             setupRoles(data);
         }
         
@@ -472,7 +470,7 @@ function leaveRoom() {
     showScreen('homeScreen');
 }
 
-// ============ SELEÇÃO DE CARGOS (CORRIGIDA) ============
+// ============ SELEÇÃO DE CARGOS (CORRIGIDA - SINCRONIZAÇÃO) ============
 function getRolesForMode(playerCount) {
     if (playerCount === 2) {
         return [
@@ -499,23 +497,30 @@ function setupRoles(data) {
     const grid = document.getElementById('rolesGrid');
     grid.innerHTML = '';
     
-    // Usa o maxPlayers do Firebase, não o do estado local
     const maxPlayers = data.maxPlayers || GameState.maxPlayers || 4;
     const availableRoles = getRolesForMode(maxPlayers);
     const takenRoles = {};
     
+    // Mapeia os cargos já escolhidos
     if (data.players) {
         Object.values(data.players).forEach(p => {
-            if (p.role) takenRoles[p.role] = p.name;
+            if (p.role) {
+                takenRoles[p.role] = p.name;
+            }
         });
     }
+    
+    // Verifica se o jogador atual já escolheu um cargo
+    const myRole = GameState.role;
     
     availableRoles.forEach(role => {
         const card = document.createElement('div');
         card.className = 'role-card';
         const isTaken = takenRoles[role.id];
+        const isMine = (myRole === role.id);
         
-        if (isTaken) {
+        if (isTaken && !isMine) {
+            // Cargo ocupado por outro jogador
             card.classList.add('taken');
             card.innerHTML = `
                 <span class="role-icon">${role.icon}</span>
@@ -523,36 +528,68 @@ function setupRoles(data) {
                 <div class="taken-by">🔒 ${isTaken}</div>
                 <div class="role-desc">${role.desc}</div>
             `;
+            card.style.cursor = 'not-allowed';
+        } else if (isMine) {
+            // Meu cargo selecionado
+            card.classList.add('selected');
+            card.style.borderColor = 'var(--primary)';
+            card.style.background = 'rgba(108, 60, 225, 0.2)';
+            card.innerHTML = `
+                <span class="role-icon">${role.icon}</span>
+                <div class="role-name">${role.name}</div>
+                <div class="taken-by" style="color: var(--success);">✅ Você</div>
+                <div class="role-desc">${role.desc}</div>
+            `;
+            card.style.cursor = 'default';
         } else {
+            // Cargo disponível
             card.innerHTML = `
                 <span class="role-icon">${role.icon}</span>
                 <div class="role-name">${role.name}</div>
                 <div class="role-desc">${role.desc}</div>
             `;
-            // CORREÇÃO: Adiciona o evento de clique diretamente
+            card.style.cursor = 'pointer';
             card.addEventListener('click', function(e) {
                 e.stopPropagation();
                 selectRole(role.id);
             });
-            // Adiciona estilo de cursor pointer para indicar que é clicável
-            card.style.cursor = 'pointer';
         }
+        
         grid.appendChild(card);
     });
     
-    const allTaken = availableRoles.every(r => takenRoles[r.id]);
-    if (allTaken) {
+    const totalRoles = availableRoles.length;
+    const takenCount = Object.keys(takenRoles).length;
+    
+    if (takenCount >= totalRoles) {
         document.getElementById('rolesStatus').textContent = '✅ Todos os cargos escolhidos! Iniciando...';
-        // Inicia o jogo após um pequeno delay para garantir que todos viram
-        setTimeout(() => startGame(), 1000);
+        // Aguarda um momento para garantir que todos viram
+        setTimeout(() => {
+            // Verifica novamente se todos ainda estão escolhidos
+            const roomRef = db.ref('rooms/' + GameState.roomId);
+            roomRef.once('value').then(snap => {
+                if (snap.exists()) {
+                    const freshData = snap.val();
+                    const freshPlayers = freshData.players || {};
+                    let freshTaken = 0;
+                    Object.values(freshPlayers).forEach(p => {
+                        if (p.role) freshTaken++;
+                    });
+                    if (freshTaken >= totalRoles) {
+                        startGame();
+                    }
+                }
+            });
+        }, 1500);
     } else {
-        document.getElementById('rolesStatus').textContent = `📢 Escolha seu cargo (${Object.keys(takenRoles).length}/${availableRoles.length})`;
+        document.getElementById('rolesStatus').textContent = `📢 Escolha seu cargo (${takenCount}/${totalRoles})`;
     }
 }
 
 function selectRole(roleId) {
-    // Verifica se o cargo já foi escolhido por outro jogador
     const roomRef = db.ref('rooms/' + GameState.roomId);
+    
+    // Primeiro, verifica se o cargo ainda está disponível
     roomRef.once('value').then(snapshot => {
         if (!snapshot.exists()) return;
         const data = snapshot.val();
@@ -560,22 +597,28 @@ function selectRole(roleId) {
         
         // Verifica se alguém já pegou este cargo
         let alreadyTaken = false;
+        let takenByName = '';
         Object.values(players).forEach(p => {
             if (p.role === roleId && p.id !== GameState.playerId) {
                 alreadyTaken = true;
+                takenByName = p.name;
             }
         });
         
         if (alreadyTaken) {
-            alert('🔒 Este cargo já foi escolhido por outro jogador!');
+            alert(`🔒 O cargo de "${getRoleName(roleId)}" já foi escolhido por ${takenByName}!`);
+            // Atualiza a interface para refletir a mudança
+            roomRef.once('value').then(snap => {
+                if (snap.exists()) setupRoles(snap.val());
+            });
             return;
         }
         
         // Se o jogador já tem um cargo, libera o anterior
         if (GameState.role) {
-            const updates = {};
-            updates['players/' + GameState.playerId + '/role'] = null;
-            roomRef.update(updates);
+            const releaseUpdate = {};
+            releaseUpdate['players/' + GameState.playerId + '/role'] = null;
+            roomRef.update(releaseUpdate);
         }
         
         // Escolhe o novo cargo
@@ -583,7 +626,7 @@ function selectRole(roleId) {
         newUpdates['players/' + GameState.playerId + '/role'] = roleId;
         roomRef.update(newUpdates).then(() => {
             GameState.role = roleId;
-            // Atualiza a tela de cargos para todos
+            // Atualiza a interface para todos
             roomRef.once('value').then(snap => {
                 if (snap.exists()) {
                     setupRoles(snap.val());
@@ -594,6 +637,16 @@ function selectRole(roleId) {
         console.error('Erro ao escolher cargo:', err);
         alert('Erro ao escolher cargo. Tente novamente.');
     });
+}
+
+function getRoleName(roleId) {
+    const names = {
+        'director': 'Diretor',
+        'animator': 'Animador',
+        'screenwriter': 'Roteirista',
+        'voice-actor': 'Dublador'
+    };
+    return names[roleId] || roleId;
 }
 
 function startGame() {
