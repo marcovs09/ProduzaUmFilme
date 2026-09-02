@@ -1227,10 +1227,9 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-#resultCanvas {
+.movie-player video {
     width: 100%;
-    height: auto;
-    max-height: 300px;
+    max-height: 400px;
     display: block;
     background: #0a0a1a;
 }
@@ -1263,7 +1262,6 @@ body {
 
 /* ============ RESPONSIVIDADE ============ */
 
-/* Telas grandes (Desktop) */
 @media (min-width: 901px) {
     .screenwriter-layout {
         flex-direction: row;
@@ -1279,7 +1277,6 @@ body {
     }
 }
 
-/* Telas médias (Tablet) */
 @media (max-width: 900px) and (min-width: 601px) {
     .screenwriter-layout {
         flex-direction: row;
@@ -1306,7 +1303,6 @@ body {
     }
 }
 
-/* Telas pequenas (Celular) */
 @media (max-width: 600px) {
     #app {
         padding: 10px;
@@ -1504,8 +1500,8 @@ body {
     .result-movie-title {
         font-size: 1rem;
     }
-    #resultCanvas {
-        max-height: 180px;
+    .movie-player video {
+        max-height: 200px;
     }
     .movie-controls .btn {
         font-size: 0.7rem;
@@ -1517,7 +1513,6 @@ body {
     }
 }
 
-/* Telas muito pequenas (celular pequeno) */
 @media (max-width: 400px) {
     .main-title {
         font-size: 1.6rem;
