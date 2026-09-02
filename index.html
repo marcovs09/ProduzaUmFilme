@@ -137,7 +137,7 @@
             </div>
         </div>
 
-        <!-- ============ TELA DO DIRETOR (NOVO) ============ -->
+        <!-- ============ TELA DO DIRETOR ============ -->
         <div id="directorScreen" class="screen">
             <div class="director-container">
                 <div class="director-header">
@@ -163,6 +163,68 @@
 
                 <div class="director-tip">
                     💡 Dica: Seja criativo! O Animador vai interpretar sua ideia.
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ TELA DO ANIMADOR (NOVO) ============ -->
+        <div id="animatorScreen" class="screen">
+            <div class="animator-container">
+                <div class="animator-header">
+                    <h2 class="screen-title">🎨 ANIMAÇÃO</h2>
+                    <div class="director-instructions" id="directorInstructions">
+                        <div class="instruction-item">
+                            <span class="instruction-label">🎬 Filme:</span>
+                            <span id="animatorMovieTitle" class="instruction-value">Aguardando...</span>
+                        </div>
+                        <div class="instruction-item">
+                            <span class="instruction-label">📝 Descrição:</span>
+                            <span id="animatorMovieDesc" class="instruction-value">Aguardando...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="canvas-wrapper">
+                    <canvas id="animationCanvas" width="600" height="400"></canvas>
+                    
+                    <div class="canvas-tools">
+                        <button class="tool-btn active" data-tool="pen" title="Lápis">✏️</button>
+                        <button class="tool-btn" data-tool="brush" title="Pincel">🖌️</button>
+                        <button class="tool-btn" data-tool="eraser" title="Borracha">🧹</button>
+                        <button class="tool-btn" data-tool="fill" title="Preencher">🪣</button>
+                        <span class="tool-divider"></span>
+                        <button class="tool-btn" id="undoBtn" title="Desfazer">↩️</button>
+                        <button class="tool-btn" id="redoBtn" title="Refazer">↪️</button>
+                        <button class="tool-btn" id="clearBtn" title="Limpar quadro">🗑️</button>
+                        <span class="tool-divider"></span>
+                        <input type="color" id="colorPicker" value="#000000" title="Cor" />
+                        <select id="brushSize" title="Tamanho do pincel">
+                            <option value="2">Pequeno</option>
+                            <option value="4" selected>Médio</option>
+                            <option value="8">Grande</option>
+                            <option value="12">Muito Grande</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="frame-timeline">
+                    <div class="frame-list" id="frameList">
+                        <!-- Frames serão inseridos via JS -->
+                    </div>
+                    <div class="frame-actions">
+                        <button id="addFrameBtn" class="btn btn-secondary btn-sm">➕ NOVO QUADRO</button>
+                        <button id="duplicateFrameBtn" class="btn btn-secondary btn-sm">📋 DUPLICAR</button>
+                        <button id="deleteFrameBtn" class="btn btn-secondary btn-sm btn-danger">🗑️ REMOVER</button>
+                    </div>
+                </div>
+
+                <div class="animator-actions">
+                    <button id="previewAnimationBtn" class="btn btn-secondary">▶️ PRÉ-VISUALIZAR</button>
+                    <button id="finishAnimationBtn" class="btn btn-primary btn-large">✅ FINALIZAR ANIMAÇÃO</button>
+                </div>
+
+                <div class="animator-tip">
+                    💡 Dica: Desenhe quadro a quadro! Use a pré-visualização para ver sua animação em ação.
                 </div>
             </div>
         </div>
