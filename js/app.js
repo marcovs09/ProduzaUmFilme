@@ -326,7 +326,7 @@ function createRoom() {
     });
 }
 
-// ============ LOBBY ============
+// ============ LOBBY (CORRIGIDO - TODOS OS MODOS) ============
 function listenRoomChanges() {
     const roomRef = db.ref('rooms/' + GameState.roomId);
     roomRef.on('value', snapshot => {
@@ -370,7 +370,21 @@ function listenRoomChanges() {
         }
         
         if (data.status === 'playing') {
+            // ============================================================
+            // MODOS 2 e 3: NÃO TEM ROTEIRISTA
+            // ============================================================
+            
+            // --- ETAPA DO DIRETOR (APENAS MODO 3 e 4) ---
             if (currentStep === 'director') {
+                // Modo 2 NÃO tem Diretor - corrige automaticamente
+                if (playerCount === 2) {
+                    console.warn('⚠️ Modo 2 sem Diretor, mas step=director. Corrigindo para animator...');
+                    const roomRefUpdate = db.ref('rooms/' + GameState.roomId);
+                    roomRefUpdate.update({ step: 'animator' });
+                    GameState.lastStep = currentStep;
+                    return;
+                }
+                
                 if (playerRole === 'director') {
                     showScreen('directorScreen');
                     loadDirectorData(data);
@@ -381,6 +395,7 @@ function listenRoomChanges() {
                 return;
             }
             
+            // --- ETAPA DO ANIMADOR (TODOS OS MODOS) ---
             if (currentStep === 'animator') {
                 if (playerRole === 'animator') {
                     showScreen('animatorScreen');
@@ -392,8 +407,10 @@ function listenRoomChanges() {
                 return;
             }
             
+            // --- ETAPA DO ROTEIRISTA (APENAS MODO 4) ---
             if (currentStep === 'screenwriter') {
                 if (playerCount !== 4) {
+                    console.warn('⚠️ Modo sem Roteirista, mas step=screenwriter. Corrigindo para voice-actor...');
                     const roomRefUpdate = db.ref('rooms/' + GameState.roomId);
                     roomRefUpdate.update({ step: 'voice-actor' });
                     GameState.lastStep = currentStep;
@@ -410,6 +427,7 @@ function listenRoomChanges() {
                 return;
             }
             
+            // --- ETAPA DO DUBLADOR (TODOS OS MODOS) ---
             if (currentStep === 'voice-actor') {
                 if (playerRole === 'voice-actor') {
                     showScreen('voiceActorScreen');
@@ -421,6 +439,7 @@ function listenRoomChanges() {
                 return;
             }
             
+            // --- RESULTADO ---
             if (currentStep === 'result') {
                 showScreen('resultScreen');
                 loadResultData(data);
@@ -477,7 +496,27 @@ function updateLobby() {
 document.getElementById('startGameBtn').addEventListener('click', () => {
     if (!GameState.isHost) return;
     const roomRef = db.ref('rooms/' + GameState.roomId);
-    roomRef.update({ status: 'roles', step: 'roles' });
+    const playerCount = GameState.maxPlayers;
+    
+    // 🔧 CORREÇÃO: Define a primeira etapa correta para cada modo
+    let firstStep;
+    if (playerCount === 2) {
+        // Modo 2: começa direto no Animador
+        firstStep = 'animator';
+    } else if (playerCount === 3) {
+        // Modo 3: começa no Diretor
+        firstStep = 'director';
+    } else {
+        // Modo 4: começa no Diretor
+        firstStep = 'director';
+    }
+    
+    console.log('🎬 Iniciando partida com', playerCount, 'jogadores - Primeira etapa:', firstStep);
+    
+    roomRef.update({ 
+        status: 'playing', 
+        step: firstStep 
+    });
 });
 
 document.getElementById('copyCodeBtn').addEventListener('click', () => {
@@ -625,7 +664,16 @@ function setupRoles(data) {
                         if (p.role) freshTaken++;
                     });
                     if (freshTaken >= totalRoles) {
-                        startGame();
+                        // Chama o startGame com a primeira etapa correta
+                        const playerCount = GameState.maxPlayers;
+                        let firstStep;
+                        if (playerCount === 2) {
+                            firstStep = 'animator';
+                        } else {
+                            firstStep = 'director';
+                        }
+                        const roomRefUpdate = db.ref('rooms/' + GameState.roomId);
+                        roomRefUpdate.update({ status: 'playing', step: firstStep });
                     }
                 }
             });
@@ -694,7 +742,14 @@ function getRoleName(roleId) {
 
 function startGame() {
     const roomRef = db.ref('rooms/' + GameState.roomId);
-    roomRef.update({ status: 'playing', step: 'director' });
+    const playerCount = GameState.maxPlayers;
+    let firstStep;
+    if (playerCount === 2) {
+        firstStep = 'animator';
+    } else {
+        firstStep = 'director';
+    }
+    roomRef.update({ status: 'playing', step: firstStep });
 }
 
 // ============ DIRETOR ============
@@ -1088,10 +1143,12 @@ function finishAnimation() {
     const roomRef = db.ref('rooms/' + GameState.roomId);
     const playerCount = GameState.maxPlayers;
     
+    // 🔧 CORREÇÃO: Próxima etapa baseada no modo
     let nextStep;
     if (playerCount === 4) {
         nextStep = 'screenwriter';
     } else {
+        // Modo 2 ou 3: vai direto para o Dublador
         nextStep = 'voice-actor';
     }
     
@@ -1508,7 +1565,7 @@ function finishVoice() {
     reader.readAsDataURL(recordedAudio);
 }
 
-// ============ RESULTADO FINAL (CORRIGIDO COM VIDEO) ============
+// ============ RESULTADO FINAL ============
 
 function loadResultData(data) {
     console.log('🔄 Resultado carregado com dados:', data);
