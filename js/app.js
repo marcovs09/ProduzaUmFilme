@@ -1,5 +1,4 @@
 // CONFIGURAÇÃO DO FIREBASE
-// ⚠️ ATENÇÃO: Você precisa substituir com seus próprios dados do Firebase!
 const firebaseConfig = {
     apiKey: "AIzaSyBfy9NSEVm_PGvQIIvZquCsxTygnt-uapQ",
     authDomain: "produza-um-filme.firebaseapp.com",
@@ -9,11 +8,10 @@ const firebaseConfig = {
     appId: "1:20415251900:web:3f94757101862baf3997b9"
 };
 
-// Inicializa o Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ESTADO DO JOGO
+// ============ ESTADO DO JOGO ============
 const GameState = {
     playerId: null,
     roomId: null,
@@ -26,14 +24,15 @@ const GameState = {
     isHost: false
 };
 
-// PERSONAGENS DISPONÍVEIS
+// ============ CONSTANTES ============
 const CHARACTERS = ['🦊', '🐱', '🐶', '🐰', '🐼', '🐨', '🦁', '🐯', '🐮', '🐷', '🐸', '🐵', '🦄', '🐲', '🦋', '🐙'];
 
-// VARIÁVEIS DE SELEÇÃO
+// ============ VARIÁVEIS GLOBAIS ============
 let selectedCharacter = null;
 let selectedPlayerCount = 4;
+let joinCharacter = null;
 
-// REFERÊNCIAS DAS TELAS
+// ============ FUNÇÕES DE UI ============
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const screen = document.getElementById(screenId);
@@ -41,7 +40,6 @@ function showScreen(screenId) {
     GameState.currentScreen = screenId;
 }
 
-// MOSTRAR TELA DE ESPERA (VERSÃO MELHORADA)
 function showWaiting(message, detail = '', emoji = '🎬') {
     showScreen('waitingScreen');
     document.getElementById('waitingMessage').textContent = message;
@@ -49,21 +47,17 @@ function showWaiting(message, detail = '', emoji = '🎬') {
     document.getElementById('waitingEmoji').textContent = emoji;
 }
 
-// MOSTRAR TELA DE ESPERA COM NOME DO FILME
 function showWaitingWithMovie(message, detail, emoji = '🎬', movieTitle = '') {
     showScreen('waitingScreen');
     document.getElementById('waitingMessage').textContent = message;
-    
     if (movieTitle) {
         document.getElementById('waitingDetail').innerHTML = `${detail}<br><span style="color: var(--accent); font-weight: 700; display: block; margin-top: 8px;">🎞️ "${movieTitle}"</span>`;
     } else {
         document.getElementById('waitingDetail').textContent = detail;
     }
-    
     document.getElementById('waitingEmoji').textContent = emoji;
 }
 
-// GERAR ID DO JOGADOR
 function generatePlayerId() {
     return 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
 }
@@ -77,7 +71,8 @@ document.getElementById('createRoomBtn').addEventListener('click', () => {
 document.getElementById('joinRoomBtn').addEventListener('click', () => {
     const code = document.getElementById('roomCode').value.trim().toUpperCase();
     if (code.length >= 3) {
-        joinRoom(code);
+        // Mostra o modal de entrada
+        showJoinModal(code);
     } else {
         alert('Digite um código de sala válido.');
     }
@@ -90,6 +85,157 @@ document.getElementById('roomCode').addEventListener('keydown', (e) => {
 document.getElementById('backFromCreate').addEventListener('click', () => {
     showScreen('homeScreen');
 });
+
+// ============ MODAL DE ENTRADA (SUBSTITUI O PROMPT FEIO) ============
+function showJoinModal(roomCode) {
+    // Cria o modal dinamicamente
+    const modal = document.createElement('div');
+    modal.id = 'joinModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        backdrop-filter: blur(10px);
+        animation: fadeIn 0.3s ease;
+    `;
+    
+    modal.innerHTML = `
+        <div style="
+            background: rgba(255,255,255,0.05);
+            padding: 40px;
+            border-radius: 16px;
+            max-width: 400px;
+            width: 90%;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            animation: slideUp 0.3s ease;
+        ">
+            <h2 style="font-family: 'Fredoka One', cursive; font-size: 1.5rem; margin-bottom: 20px; text-align: center; color: var(--accent);">
+                🎬 Entrar na Sala
+            </h2>
+            <p style="text-align: center; color: rgba(255,255,255,0.6); margin-bottom: 20px;">
+                Código: <strong style="color: white;">${roomCode}</strong>
+            </p>
+            
+            <div class="form-group">
+                <label>Seu nome</label>
+                <input type="text" id="joinNameInput" class="input-field" placeholder="Digite seu nickname" maxlength="20" />
+            </div>
+            
+            <div class="form-group">
+                <label>Escolha seu personagem</label>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px;">
+                    ${CHARACTERS.map(char => `
+                        <div class="character-option join-char" data-char="${char}" style="
+                            padding: 10px;
+                            border-radius: 8px;
+                            border: 2px solid rgba(255,255,255,0.1);
+                            background: rgba(255,255,255,0.05);
+                            cursor: pointer;
+                            text-align: center;
+                            font-size: 1.5rem;
+                            transition: all 0.3s ease;
+                        ">${char}</div>
+                    `).join('')}
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 12px; margin-top: 20px;">
+                <button id="confirmJoinBtn" class="btn btn-primary" style="flex: 1;">✅ ENTRAR</button>
+                <button id="cancelJoinBtn" class="btn btn-secondary" style="flex: 1;">❌ CANCELAR</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Selecionar personagem no modal
+    modal.querySelectorAll('.join-char').forEach(el => {
+        el.addEventListener('click', () => {
+            modal.querySelectorAll('.join-char').forEach(e => e.style.borderColor = 'rgba(255,255,255,0.1)');
+            el.style.borderColor = 'var(--primary)';
+            el.style.background = 'rgba(108, 60, 225, 0.2)';
+            joinCharacter = el.dataset.char;
+        });
+    });
+    
+    // Confirmar entrada
+    document.getElementById('confirmJoinBtn').addEventListener('click', () => {
+        const name = document.getElementById('joinNameInput').value.trim();
+        if (!name) { alert('Digite seu nome!'); return; }
+        if (!joinCharacter) { alert('Escolha um personagem!'); return; }
+        
+        document.body.removeChild(modal);
+        // Chama a função de entrar na sala com os dados
+        executeJoinRoom(roomCode, name, joinCharacter);
+    });
+    
+    document.getElementById('cancelJoinBtn').addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+}
+
+// Função separada para executar a entrada na sala
+function executeJoinRoom(code, name, character) {
+    const roomRef = db.ref('rooms/' + code);
+    roomRef.once('value').then(snapshot => {
+        if (!snapshot.exists()) {
+            alert('Sala não encontrada!');
+            return;
+        }
+        
+        const data = snapshot.val();
+        if (data.status === 'finished') {
+            alert('Esta sala já foi finalizada.');
+            return;
+        }
+        
+        const playerCount = Object.keys(data.players || {}).length;
+        if (playerCount >= data.maxPlayers) {
+            alert('Sala cheia!');
+            return;
+        }
+        
+        GameState.playerName = name;
+        GameState.character = character;
+        GameState.roomId = code;
+        GameState.playerId = generatePlayerId();
+        GameState.isHost = false;
+        GameState.maxPlayers = data.maxPlayers; // IMPORTANTE: pega do Firebase
+        
+        const playerData = {
+            id: GameState.playerId,
+            name: name,
+            character: character,
+            isHost: false,
+            role: null,
+            joinedAt: Date.now()
+        };
+        
+        const updates = {};
+        updates['players/' + GameState.playerId] = playerData;
+        
+        roomRef.update(updates).then(() => {
+            document.getElementById('roomCodeDisplay').textContent = code;
+            updateLobby();
+            showScreen('lobbyScreen');
+            listenRoomChanges();
+        }).catch(err => {
+            console.error('Erro ao entrar na sala:', err);
+            alert('Erro ao entrar na sala.');
+        });
+    }).catch(err => {
+        console.error('Erro ao buscar sala:', err);
+        alert('Erro ao buscar sala. Verifique o código.');
+    });
+}
 
 // ============ CRIAÇÃO DE SALA ============
 function setupCharacterSelection() {
@@ -128,7 +274,6 @@ document.getElementById('confirmCreateRoom').addEventListener('click', () => {
     createRoom();
 });
 
-// ============ SISTEMA DE SALAS ============
 function createRoom() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
@@ -176,66 +321,6 @@ function createRoom() {
     });
 }
 
-function joinRoom(code) {
-    const roomRef = db.ref('rooms/' + code);
-    roomRef.once('value').then(snapshot => {
-        if (!snapshot.exists()) {
-            alert('Sala não encontrada!');
-            return;
-        }
-        
-        const data = snapshot.val();
-        if (data.status === 'finished') {
-            alert('Esta sala já foi finalizada.');
-            return;
-        }
-        
-        // Verifica se a sala está cheia
-        const playerCount = Object.keys(data.players || {}).length;
-        if (playerCount >= data.maxPlayers) {
-            alert('Sala cheia!');
-            return;
-        }
-        
-        const name = prompt('Digite seu nome:');
-        if (!name) return;
-        
-        const char = prompt('Escolha um personagem (digite o emoji):\n' + CHARACTERS.join(' '));
-        if (!char) return;
-        
-        GameState.playerName = name;
-        GameState.character = char;
-        GameState.roomId = code;
-        GameState.playerId = generatePlayerId();
-        GameState.isHost = false;
-        
-        const playerData = {
-            id: GameState.playerId,
-            name: name,
-            character: char,
-            isHost: false,
-            role: null,
-            joinedAt: Date.now()
-        };
-        
-        const updates = {};
-        updates['players/' + GameState.playerId] = playerData;
-        
-        roomRef.update(updates).then(() => {
-            document.getElementById('roomCodeDisplay').textContent = code;
-            updateLobby();
-            showScreen('lobbyScreen');
-            listenRoomChanges();
-        }).catch(err => {
-            console.error('Erro ao entrar na sala:', err);
-            alert('Erro ao entrar na sala.');
-        });
-    }).catch(err => {
-        console.error('Erro ao buscar sala:', err);
-        alert('Erro ao buscar sala. Verifique o código.');
-    });
-}
-
 // ============ LOBBY ============
 function listenRoomChanges() {
     const roomRef = db.ref('rooms/' + GameState.roomId);
@@ -247,6 +332,11 @@ function listenRoomChanges() {
         }
         
         const data = snapshot.val();
+        
+        // Atualiza o maxPlayers a partir do Firebase (importante para modos 2/3)
+        if (data.maxPlayers) {
+            GameState.maxPlayers = data.maxPlayers;
+        }
         
         if (data.players) {
             GameState.players = data.players;
@@ -382,7 +472,7 @@ function leaveRoom() {
     showScreen('homeScreen');
 }
 
-// ============ SELEÇÃO DE CARGOS ============
+// ============ SELEÇÃO DE CARGOS (CORRIGIDA) ============
 function getRolesForMode(playerCount) {
     if (playerCount === 2) {
         return [
@@ -409,7 +499,9 @@ function setupRoles(data) {
     const grid = document.getElementById('rolesGrid');
     grid.innerHTML = '';
     
-    const availableRoles = getRolesForMode(GameState.maxPlayers);
+    // Usa o maxPlayers do Firebase, não o do estado local
+    const maxPlayers = data.maxPlayers || GameState.maxPlayers || 4;
+    const availableRoles = getRolesForMode(maxPlayers);
     const takenRoles = {};
     
     if (data.players) {
@@ -437,7 +529,13 @@ function setupRoles(data) {
                 <div class="role-name">${role.name}</div>
                 <div class="role-desc">${role.desc}</div>
             `;
-            card.addEventListener('click', () => selectRole(role.id));
+            // CORREÇÃO: Adiciona o evento de clique diretamente
+            card.addEventListener('click', function(e) {
+                e.stopPropagation();
+                selectRole(role.id);
+            });
+            // Adiciona estilo de cursor pointer para indicar que é clicável
+            card.style.cursor = 'pointer';
         }
         grid.appendChild(card);
     });
@@ -445,18 +543,56 @@ function setupRoles(data) {
     const allTaken = availableRoles.every(r => takenRoles[r.id]);
     if (allTaken) {
         document.getElementById('rolesStatus').textContent = '✅ Todos os cargos escolhidos! Iniciando...';
-        startGame();
+        // Inicia o jogo após um pequeno delay para garantir que todos viram
+        setTimeout(() => startGame(), 1000);
     } else {
         document.getElementById('rolesStatus').textContent = `📢 Escolha seu cargo (${Object.keys(takenRoles).length}/${availableRoles.length})`;
     }
 }
 
 function selectRole(roleId) {
+    // Verifica se o cargo já foi escolhido por outro jogador
     const roomRef = db.ref('rooms/' + GameState.roomId);
-    const updates = {};
-    updates['players/' + GameState.playerId + '/role'] = roleId;
-    roomRef.update(updates).then(() => {
-        GameState.role = roleId;
+    roomRef.once('value').then(snapshot => {
+        if (!snapshot.exists()) return;
+        const data = snapshot.val();
+        const players = data.players || {};
+        
+        // Verifica se alguém já pegou este cargo
+        let alreadyTaken = false;
+        Object.values(players).forEach(p => {
+            if (p.role === roleId && p.id !== GameState.playerId) {
+                alreadyTaken = true;
+            }
+        });
+        
+        if (alreadyTaken) {
+            alert('🔒 Este cargo já foi escolhido por outro jogador!');
+            return;
+        }
+        
+        // Se o jogador já tem um cargo, libera o anterior
+        if (GameState.role) {
+            const updates = {};
+            updates['players/' + GameState.playerId + '/role'] = null;
+            roomRef.update(updates);
+        }
+        
+        // Escolhe o novo cargo
+        const newUpdates = {};
+        newUpdates['players/' + GameState.playerId + '/role'] = roleId;
+        roomRef.update(newUpdates).then(() => {
+            GameState.role = roleId;
+            // Atualiza a tela de cargos para todos
+            roomRef.once('value').then(snap => {
+                if (snap.exists()) {
+                    setupRoles(snap.val());
+                }
+            });
+        });
+    }).catch(err => {
+        console.error('Erro ao escolher cargo:', err);
+        alert('Erro ao escolher cargo. Tente novamente.');
     });
 }
 
@@ -466,13 +602,10 @@ function startGame() {
 }
 
 // ============ DIRETOR ============
-
-// Quando o Diretor clicar em "ENVIAR PARA O ANIMADOR"
 document.getElementById('submitDirectorBtn').addEventListener('click', () => {
     const title = document.getElementById('movieTitle').value.trim();
     const description = document.getElementById('movieDescription').value.trim();
 
-    // Validação
     if (!title) {
         alert('🎞️ Digite o nome do filme!');
         document.getElementById('movieTitle').focus();
@@ -491,14 +624,12 @@ document.getElementById('submitDirectorBtn').addEventListener('click', () => {
         return;
     }
 
-    // Atualiza o Firebase com as informações do Diretor
     const roomRef = db.ref('rooms/' + GameState.roomId);
     roomRef.update({
         'gameData/directorTitle': title,
         'gameData/directorDescription': description,
         step: 'animator'
     }).then(() => {
-        // Mostra tela de espera para o Diretor
         showWaitingWithMovie(
             '🎬 Filme enviado para o Animador!',
             `Aguardando o Animador criar a cena`,
@@ -511,7 +642,6 @@ document.getElementById('submitDirectorBtn').addEventListener('click', () => {
     });
 });
 
-// Preenche automaticamente se o Diretor já tiver enviado antes (reconexão)
 function loadDirectorData(data) {
     if (data.gameData && data.gameData.directorTitle) {
         document.getElementById('movieTitle').value = data.gameData.directorTitle;
@@ -520,28 +650,11 @@ function loadDirectorData(data) {
 }
 
 // ============ ANIMADOR (PLACEHOLDER) ============
-
 function loadAnimatorData(data) {
     console.log('🔄 Animador carregado com dados:', data);
-    // Será implementado na Fase 4
 }
 
 // ============ INICIALIZAÇÃO ============
-
 document.addEventListener('DOMContentLoaded', () => {
-    // Se for uma nova partida, limpa os campos do Diretor
-    if (GameState.roomId) {
-        const roomRef = db.ref('rooms/' + GameState.roomId);
-        roomRef.once('value').then(snapshot => {
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                if (data.step === 'director' && GameState.role === 'director') {
-                    // Se já tem dados, carrega
-                    loadDirectorData(data);
-                }
-            }
-        });
-    }
-    
     console.log('🎬 Produza um Filme - Inicializado!');
 });
