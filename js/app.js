@@ -1281,13 +1281,12 @@ function submitScript() {
     });
 }
 
-// ============ DUBLADOR (CORRIGIDO) ============
+// ============ DUBLADOR ============
 let mediaRecorder = null;
 let audioChunks = [];
 let recordedAudio = null;
 let isRecording = false;
 
-// Variáveis para o player de animação do Dublador
 let voicePreviewFrames = [];
 let voiceIsPlaying = false;
 let voiceIntervalId = null;
@@ -1297,26 +1296,21 @@ function loadVoiceActorData(data) {
     console.log('🔄 Dublador carregado com dados:', data);
     console.log('📝 Modo:', GameState.maxPlayers, 'jogadores');
     
-    // Carrega os frames da animação para o Dublador ver
     if (data.gameData && data.gameData.frames && data.gameData.frames.length > 0) {
         voicePreviewFrames = data.gameData.frames;
     } else {
         voicePreviewFrames = [];
     }
     
-    // Mostra a animação no canvas do Dublador
     setupVoicePreviewCanvas();
     
-    // Verifica se tem roteiro
     if (data.gameData && data.gameData.script) {
-        // Modo 4: tem roteiro
         document.getElementById('scriptDisplay').textContent = data.gameData.script;
         document.getElementById('recordingStatus').textContent = '🎙️ Pronto para gravar!';
         document.getElementById('recordBtn').disabled = false;
         document.getElementById('recordBtn').textContent = '🔴 GRAVAR';
         document.getElementById('finishVoiceBtn').disabled = true;
     } else {
-        // Modo 2 ou 3: sem Roteirista - improviso com animação
         const playerCount = GameState.maxPlayers;
         
         if (playerCount === 2 || playerCount === 3) {
@@ -1332,14 +1326,12 @@ function loadVoiceActorData(data) {
         }
     }
     
-    // Configura eventos
     document.getElementById('recordBtn').onclick = startRecording;
     document.getElementById('stopBtn').onclick = stopRecording;
     document.getElementById('playbackBtn').onclick = playRecordedAudio;
     document.getElementById('retryBtn').onclick = resetRecording;
     document.getElementById('finishVoiceBtn').onclick = finishVoice;
     
-    // Configura os botões de reprodução da animação
     document.getElementById('voicePlayBtn').onclick = playVoicePreview;
     document.getElementById('voicePauseBtn').onclick = pauseVoicePreview;
     document.getElementById('voiceRestartBtn').onclick = restartVoicePreview;
@@ -1347,9 +1339,7 @@ function loadVoiceActorData(data) {
 
 function setupVoicePreviewCanvas() {
     const canvas = document.getElementById('voicePreviewCanvas');
-    if (!canvas) {
-        return;
-    }
+    if (!canvas) return;
     const ctx = canvas.getContext('2d');
     canvas.width = 600;
     canvas.height = 400;
@@ -1518,20 +1508,19 @@ function finishVoice() {
     reader.readAsDataURL(recordedAudio);
 }
 
-// ============ RESULTADO FINAL ============
-let resultMovieTitle = '';
-let resultFrames = [];
-let resultAudio = null;
-let resultInterval = null;
-let isMoviePlaying = false;
-let currentMovieFrame = 0;
+// ============ RESULTADO FINAL (CORRIGIDO COM VIDEO) ============
 
 function loadResultData(data) {
     console.log('🔄 Resultado carregado com dados:', data);
     
+    const video = document.getElementById('finalVideo');
+    
     if (data.gameData) {
-        resultMovieTitle = data.gameData.directorTitle || 'Filme sem título';
-        resultFrames = data.gameData.frames || [];
+        const title = data.gameData.directorTitle || 'Filme sem título';
+        document.getElementById('resultMovieTitle').textContent = `🎞️ "${title}"`;
+        
+        const frames = data.gameData.frames || [];
+        let audioBlob = null;
         
         if (data.gameData.audio) {
             const audioData = data.gameData.audio.split(',')[1];
@@ -1542,127 +1531,230 @@ function loadResultData(data) {
                     byteNumbers[i] = byteCharacters.charCodeAt(i);
                 }
                 const byteArray = new Uint8Array(byteNumbers);
-                resultAudio = new Blob([byteArray], { type: 'audio/wav' });
+                audioBlob = new Blob([byteArray], { type: 'audio/wav' });
             }
+        }
+        
+        createVideoFromFramesAndAudio(frames, audioBlob, video);
+    }
+    
+    document.getElementById('playMovieBtn').onclick = function() {
+        if (window.__movieControls && window.__movieControls.play) {
+            window.__movieControls.play();
+        }
+    };
+    document.getElementById('pauseMovieBtn').onclick = function() {
+        if (window.__movieControls && window.__movieControls.pause) {
+            window.__movieControls.pause();
+        }
+    };
+    document.getElementById('restartMovieBtn').onclick = function() {
+        if (window.__movieControls && window.__movieControls.restart) {
+            window.__movieControls.restart();
+        }
+    };
+    document.getElementById('downloadBtn').onclick = downloadMovie;
+    document.getElementById('playAgainBtn').onclick = playAgain;
+    document.getElementById('exitResultBtn').onclick = exitResult;
+}
+
+function createVideoFromFramesAndAudio(frames, audioBlob, videoElement) {
+    if (!frames || frames.length === 0) {
+        videoElement.innerHTML = '<source src="" type="video/mp4">';
+        videoElement.textContent = '🎬 Aguardando filme...';
+        return;
+    }
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = 600;
+    canvas.height = 400;
+    const ctx = canvas.getContext('2d');
+    
+    const stream = canvas.captureStream(6);
+    
+    let audioContext = null;
+    let audioSource = null;
+    let audioDestination = null;
+    let isAudioReady = false;
+    
+    if (audioBlob) {
+        try {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const arrayBuffer = e.target.result;
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    
+                    audioSource = audioContext.createBufferSource();
+                    audioSource.buffer = audioBuffer;
+                    audioDestination = audioContext.createMediaStreamDestination();
+                    audioSource.connect(audioDestination);
+                    
+                    const audioTracks = audioDestination.stream.getAudioTracks();
+                    audioTracks.forEach(track => {
+                        stream.addTrack(track);
+                    });
+                    
+                    isAudioReady = true;
+                } catch (err) {
+                    console.error('Erro ao processar áudio:', err);
+                }
+            };
+            reader.readAsArrayBuffer(audioBlob);
+        } catch (err) {
+            console.error('Erro ao configurar áudio:', err);
         }
     }
     
-    document.getElementById('resultMovieTitle').textContent = `🎞️ "${resultMovieTitle}"`;
+    let frameIndex = 0;
+    let animationInterval = null;
+    let isPlaying = false;
+    let audioStarted = false;
     
-    setupResultCanvas();
-    
-    document.getElementById('playMovieBtn').addEventListener('click', playMovie);
-    document.getElementById('pauseMovieBtn').addEventListener('click', pauseMovie);
-    document.getElementById('restartMovieBtn').addEventListener('click', restartMovie);
-    document.getElementById('downloadBtn').addEventListener('click', downloadMovie);
-    document.getElementById('playAgainBtn').addEventListener('click', playAgain);
-    document.getElementById('exitResultBtn').addEventListener('click', exitResult);
-}
-
-function setupResultCanvas() {
-    const canvas = document.getElementById('resultCanvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 600;
-    canvas.height = 400;
-    
-    if (resultFrames.length > 0 && resultFrames[0]) {
+    if (frames[0]) {
         const img = new Image();
         img.onload = () => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(img, 0, 0);
         };
-        img.src = resultFrames[0];
-    } else {
-        ctx.fillStyle = '#1a1a2e';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        ctx.font = '20px Nunito, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('🎬 Aguardando filme...', canvas.width/2, canvas.height/2);
-    }
-}
-
-function playMovie() {
-    if (resultFrames.length === 0) {
-        alert('Ainda não há filme para assistir!');
-        return;
+        img.src = frames[0];
     }
     
-    if (isMoviePlaying) return;
-    
-    isMoviePlaying = true;
-    const canvas = document.getElementById('resultCanvas');
-    const ctx = canvas.getContext('2d');
-    const delay = 200;
-    
-    if (currentMovieFrame >= resultFrames.length) {
-        currentMovieFrame = 0;
-    }
-    
-    let audioElement = null;
-    if (resultAudio) {
-        audioElement = new Audio(URL.createObjectURL(resultAudio));
-        audioElement.play();
-        audioElement.onended = () => {
-            pauseMovie();
-        };
-    }
-    
-    resultInterval = setInterval(() => {
-        if (currentMovieFrame >= resultFrames.length) {
-            currentMovieFrame = 0;
-            if (audioElement) {
-                audioElement.currentTime = 0;
-                audioElement.play();
+    function playAnimation() {
+        if (isPlaying) return;
+        isPlaying = true;
+        
+        if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+        
+        frameIndex = 0;
+        const delay = 1000 / 6;
+        
+        if (audioSource && isAudioReady && !audioStarted) {
+            try {
+                audioSource.start(0);
+                audioStarted = true;
+                audioSource.onended = () => {
+                    pauseAnimation();
+                };
+            } catch (e) {
+                console.warn('Áudio já foi iniciado ou erro:', e);
             }
         }
         
-        const frame = resultFrames[currentMovieFrame];
-        if (frame) {
+        animationInterval = setInterval(() => {
+            if (frameIndex >= frames.length) {
+                frameIndex = 0;
+                if (audioSource && isAudioReady) {
+                    try {
+                        audioSource.start(0);
+                    } catch (e) {}
+                }
+            }
+            
+            const frame = frames[frameIndex];
+            if (frame) {
+                const img = new Image();
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = frame;
+            }
+            frameIndex++;
+        }, delay);
+    }
+    
+    function pauseAnimation() {
+        isPlaying = false;
+        if (animationInterval) {
+            clearInterval(animationInterval);
+            animationInterval = null;
+        }
+        if (audioSource && isAudioReady) {
+            try {
+                audioSource.stop();
+                audioStarted = false;
+            } catch (e) {}
+        }
+        if (audioContext) {
+            audioContext.suspend();
+        }
+    }
+    
+    function restartAnimation() {
+        pauseAnimation();
+        frameIndex = 0;
+        audioStarted = false;
+        
+        if (frames[0]) {
             const img = new Image();
             img.onload = () => {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(img, 0, 0);
             };
-            img.src = frame;
+            img.src = frames[0];
         }
-        currentMovieFrame++;
-    }, delay);
-}
-
-function pauseMovie() {
-    isMoviePlaying = false;
-    if (resultInterval) {
-        clearInterval(resultInterval);
-        resultInterval = null;
+        
+        if (audioSource && isAudioReady && audioBlob) {
+            try {
+                audioSource = audioContext.createBufferSource();
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    const arrayBuffer = e.target.result;
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    audioSource.buffer = audioBuffer;
+                    audioSource.connect(audioDestination);
+                };
+                reader.readAsArrayBuffer(audioBlob);
+            } catch (e) {}
+        }
+        
+        setTimeout(() => playAnimation(), 300);
     }
-}
-
-function restartMovie() {
-    pauseMovie();
-    currentMovieFrame = 0;
-    const canvas = document.getElementById('resultCanvas');
-    const ctx = canvas.getContext('2d');
-    if (resultFrames.length > 0 && resultFrames[0]) {
-        const img = new Image();
-        img.onload = () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-        };
-        img.src = resultFrames[0];
-    }
+    
+    window.__movieControls = {
+        play: playAnimation,
+        pause: pauseAnimation,
+        restart: restartAnimation,
+        video: videoElement,
+        canvas: canvas,
+        stream: stream
+    };
+    
+    videoElement.srcObject = stream;
+    videoElement.muted = false;
+    videoElement.autoplay = true;
+    videoElement.controls = false;
+    videoElement.style.width = '100%';
+    videoElement.style.maxHeight = '400px';
+    videoElement.style.background = '#0a0a1a';
+    videoElement.style.borderRadius = '10px';
+    
+    setTimeout(() => {
+        playAnimation();
+    }, 800);
 }
 
 function downloadMovie() {
-    alert('⬇️ Função de download será implementada em breve!');
+    alert('⬇️ Download do vídeo será implementado em breve!\n\n(Dica: Grave a tela ou use um gravador de tela)');
 }
 
 function playAgain() {
-    if (resultInterval) {
-        clearInterval(resultInterval);
-        resultInterval = null;
+    if (window.__movieControls) {
+        if (window.__movieControls.pause) {
+            window.__movieControls.pause();
+        }
+        if (window.__movieControls.video) {
+            window.__movieControls.video.srcObject = null;
+        }
+        if (window.__movieControls.stream) {
+            window.__movieControls.stream.getTracks().forEach(track => track.stop());
+        }
     }
-    isMoviePlaying = false;
     
     const roomRef = db.ref('rooms/' + GameState.roomId);
     roomRef.update({
@@ -1688,11 +1780,17 @@ function playAgain() {
 }
 
 function exitResult() {
-    if (resultInterval) {
-        clearInterval(resultInterval);
-        resultInterval = null;
+    if (window.__movieControls) {
+        if (window.__movieControls.pause) {
+            window.__movieControls.pause();
+        }
+        if (window.__movieControls.video) {
+            window.__movieControls.video.srcObject = null;
+        }
+        if (window.__movieControls.stream) {
+            window.__movieControls.stream.getTracks().forEach(track => track.stop());
+        }
     }
-    isMoviePlaying = false;
     leaveRoom();
 }
 
