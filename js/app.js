@@ -1287,24 +1287,40 @@ let audioChunks = [];
 let recordedAudio = null;
 let isRecording = false;
 
+// Variáveis para o player de animação do Dublador
+let voicePreviewFrames = [];
+let voiceIsPlaying = false;
+let voiceIntervalId = null;
+let voiceCurrentFrame = 0;
+
 function loadVoiceActorData(data) {
     console.log('🔄 Dublador carregado com dados:', data);
     console.log('📝 Modo:', GameState.maxPlayers, 'jogadores');
     
+    // Carrega os frames da animação para o Dublador ver
+    if (data.gameData && data.gameData.frames && data.gameData.frames.length > 0) {
+        voicePreviewFrames = data.gameData.frames;
+    } else {
+        voicePreviewFrames = [];
+    }
+    
+    // Mostra a animação no canvas do Dublador
+    setupVoicePreviewCanvas();
+    
     // Verifica se tem roteiro
     if (data.gameData && data.gameData.script) {
+        // Modo 4: tem roteiro
         document.getElementById('scriptDisplay').textContent = data.gameData.script;
         document.getElementById('recordingStatus').textContent = '🎙️ Pronto para gravar!';
         document.getElementById('recordBtn').disabled = false;
         document.getElementById('recordBtn').textContent = '🔴 GRAVAR';
         document.getElementById('finishVoiceBtn').disabled = true;
     } else {
-        // Se não tem roteiro, verifica se é modo 2 ou 3 (sem Roteirista)
+        // Modo 2 ou 3: sem Roteirista - improviso com animação
         const playerCount = GameState.maxPlayers;
         
         if (playerCount === 2 || playerCount === 3) {
-            // Modo sem Roteirista: o Dublador deve improvisar!
-            document.getElementById('scriptDisplay').textContent = '🎭 Modo improviso! Crie suas próprias falas baseado na animação!';
+            document.getElementById('scriptDisplay').textContent = '🎭 Modo improviso! Assista à animação e crie suas próprias falas!';
             document.getElementById('recordingStatus').textContent = '🎙️ Modo improviso - grave sua dublagem!';
             document.getElementById('recordBtn').disabled = false;
             document.getElementById('recordBtn').textContent = '🔴 GRAVAR';
@@ -1322,6 +1338,95 @@ function loadVoiceActorData(data) {
     document.getElementById('playbackBtn').onclick = playRecordedAudio;
     document.getElementById('retryBtn').onclick = resetRecording;
     document.getElementById('finishVoiceBtn').onclick = finishVoice;
+    
+    // Configura os botões de reprodução da animação
+    document.getElementById('voicePlayBtn').onclick = playVoicePreview;
+    document.getElementById('voicePauseBtn').onclick = pauseVoicePreview;
+    document.getElementById('voiceRestartBtn').onclick = restartVoicePreview;
+}
+
+function setupVoicePreviewCanvas() {
+    const canvas = document.getElementById('voicePreviewCanvas');
+    if (!canvas) {
+        return;
+    }
+    const ctx = canvas.getContext('2d');
+    canvas.width = 600;
+    canvas.height = 400;
+    
+    if (voicePreviewFrames.length > 0 && voicePreviewFrames[0]) {
+        const img = new Image();
+        img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+        };
+        img.src = voicePreviewFrames[0];
+    } else {
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.font = '20px Nunito, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🎬 Aguardando animação...', canvas.width/2, canvas.height/2);
+    }
+}
+
+function playVoicePreview() {
+    if (voicePreviewFrames.length === 0) {
+        alert('Ainda não há animação para visualizar!');
+        return;
+    }
+    
+    if (voiceIsPlaying) return;
+    
+    voiceIsPlaying = true;
+    const canvas = document.getElementById('voicePreviewCanvas');
+    const ctx = canvas.getContext('2d');
+    const delay = 200;
+    
+    if (voiceCurrentFrame >= voicePreviewFrames.length) {
+        voiceCurrentFrame = 0;
+    }
+    
+    voiceIntervalId = setInterval(() => {
+        if (voiceCurrentFrame >= voicePreviewFrames.length) {
+            voiceCurrentFrame = 0;
+        }
+        
+        const frame = voicePreviewFrames[voiceCurrentFrame];
+        if (frame) {
+            const img = new Image();
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+            };
+            img.src = frame;
+        }
+        voiceCurrentFrame++;
+    }, delay);
+}
+
+function pauseVoicePreview() {
+    voiceIsPlaying = false;
+    if (voiceIntervalId) {
+        clearInterval(voiceIntervalId);
+        voiceIntervalId = null;
+    }
+}
+
+function restartVoicePreview() {
+    pauseVoicePreview();
+    voiceCurrentFrame = 0;
+    const canvas = document.getElementById('voicePreviewCanvas');
+    const ctx = canvas.getContext('2d');
+    if (voicePreviewFrames.length > 0 && voicePreviewFrames[0]) {
+        const img = new Image();
+        img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+        };
+        img.src = voicePreviewFrames[0];
+    }
 }
 
 async function startRecording() {
