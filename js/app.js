@@ -333,6 +333,13 @@ function listenRoomChanges() {
         
         if (data.players) {
             GameState.players = data.players;
+            // Atualiza o role do jogador atual se mudou
+            if (data.players[GameState.playerId]) {
+                const newRole = data.players[GameState.playerId].role;
+                if (newRole !== GameState.role) {
+                    GameState.role = newRole;
+                }
+            }
             updateLobby();
         }
         
@@ -357,7 +364,7 @@ function listenRoomChanges() {
             }
         }
         
-        // ============ TELA DO ANIMADOR ============
+        // ============ TELA DO ANIMADOR (CORRIGIDA) ============
         if (data.step === 'animator') {
             if (GameState.role === 'animator') {
                 showScreen('animatorScreen');
@@ -373,17 +380,21 @@ function listenRoomChanges() {
             }
         }
         
+        // ============ TELA DO ROTEIRISTA ============
         if (data.step === 'screenwriter') {
             if (GameState.role === 'screenwriter') {
                 showScreen('screenwriterScreen');
+                // TODO: carregar dados do roteirista
             } else if (GameState.currentScreen !== 'waitingScreen') {
                 showWaiting('📝 O Roteirista está escrevendo...', 'Aguardando o Roteirista finalizar', '📝');
             }
         }
         
+        // ============ TELA DO DUBLADOR ============
         if (data.step === 'voice-actor') {
             if (GameState.role === 'voice-actor') {
                 showScreen('voiceActorScreen');
+                // TODO: carregar dados do dublador
             } else if (GameState.currentScreen !== 'waitingScreen') {
                 showWaiting('🎙️ O Dublador está gravando...', 'Aguardando o Dublador finalizar', '🎙️');
             }
@@ -689,7 +700,7 @@ function loadDirectorData(data) {
     }
 }
 
-// ============ ANIMADOR (COMPLETO) ============
+// ============ ANIMADOR ============
 
 // Variáveis do Animador
 let animatorFrames = [];
@@ -738,24 +749,20 @@ function initAnimatorCanvas() {
     const canvas = document.getElementById('animationCanvas');
     const ctx = canvas.getContext('2d');
     
-    // Configura o canvas
     canvas.width = 600;
     canvas.height = 400;
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Eventos de desenho (mouse)
     canvas.addEventListener('mousedown', startDraw);
     canvas.addEventListener('mousemove', draw);
     canvas.addEventListener('mouseup', endDraw);
     canvas.addEventListener('mouseleave', endDraw);
     
-    // Eventos de desenho (toque - mobile)
     canvas.addEventListener('touchstart', handleTouchStart);
     canvas.addEventListener('touchmove', handleTouchMove);
     canvas.addEventListener('touchend', endDraw);
     
-    // Ferramentas
     document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
@@ -764,17 +771,14 @@ function initAnimatorCanvas() {
         });
     });
     
-    // Cor
     document.getElementById('colorPicker').addEventListener('change', (e) => {
         currentColor = e.target.value;
     });
     
-    // Tamanho do pincel
     document.getElementById('brushSize').addEventListener('change', (e) => {
         currentSize = parseInt(e.target.value);
     });
     
-    // Botões
     document.getElementById('undoBtn').addEventListener('click', undoFrame);
     document.getElementById('redoBtn').addEventListener('click', redoFrame);
     document.getElementById('clearBtn').addEventListener('click', clearCurrentFrame);
@@ -784,8 +788,6 @@ function initAnimatorCanvas() {
     document.getElementById('previewAnimationBtn').addEventListener('click', togglePreview);
     document.getElementById('finishAnimationBtn').addEventListener('click', finishAnimation);
 }
-
-// ============ FUNÇÕES DE DESENHO ============
 
 function startDraw(e) {
     isDrawing = true;
@@ -815,9 +817,6 @@ function draw(e) {
     if (currentTool === 'eraser') {
         ctx.strokeStyle = 'white';
         ctx.lineWidth = currentSize * 2;
-    } else if (currentTool === 'fill') {
-        // Preenchimento - apenas no clique
-        return;
     } else {
         ctx.strokeStyle = currentColor;
         ctx.lineWidth = currentSize;
@@ -838,8 +837,6 @@ function endDraw() {
     }
 }
 
-// ============ FUNÇÕES DE TOQUE (MOBILE) ============
-
 function handleTouchStart(e) {
     e.preventDefault();
     const touch = e.touches[0];
@@ -859,8 +856,6 @@ function handleTouchMove(e) {
     });
     draw(mouseEvent);
 }
-
-// ============ GERENCIAMENTO DE FRAMES ============
 
 function saveCurrentFrame() {
     const canvas = document.getElementById('animationCanvas');
@@ -907,7 +902,6 @@ function updateFrameList() {
             thumb.style.border = '2px dashed rgba(255,255,255,0.2)';
         }
         
-        // Número do frame
         const number = document.createElement('span');
         number.className = 'frame-number';
         number.textContent = index + 1;
@@ -927,7 +921,6 @@ function addNewFrame() {
     const canvas = document.getElementById('animationCanvas');
     const ctx = canvas.getContext('2d');
     
-    // Cria um frame em branco
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = canvas.width;
     tempCanvas.height = canvas.height;
@@ -966,12 +959,10 @@ function deleteFrame() {
 }
 
 function undoFrame() {
-    // Implementação simples: não temos histórico, então recarrega o frame
     loadFrame(currentFrameIndex);
 }
 
 function redoFrame() {
-    // Implementação simples: não temos histórico, então recarrega o frame
     loadFrame(currentFrameIndex);
 }
 
@@ -985,8 +976,6 @@ function clearCurrentFrame() {
         updateFrameList();
     }
 }
-
-// ============ PRÉ-VISUALIZAÇÃO ============
 
 function togglePreview() {
     if (isPreviewing) {
@@ -1009,7 +998,7 @@ function startPreview() {
     let index = 0;
     const canvas = document.getElementById('animationCanvas');
     const ctx = canvas.getContext('2d');
-    const delay = 200; // 5 fps
+    const delay = 200;
     
     previewInterval = setInterval(() => {
         if (index >= animatorFrames.length) {
@@ -1039,11 +1028,8 @@ function stopPreview() {
         clearInterval(previewInterval);
         previewInterval = null;
     }
-    // Volta para o frame atual
     loadFrame(currentFrameIndex);
 }
-
-// ============ FINALIZAR ANIMAÇÃO ============
 
 function finishAnimation() {
     if (animatorFrames.length === 0 || animatorFrames.every(f => f === null)) {
@@ -1055,14 +1041,12 @@ function finishAnimation() {
         return;
     }
     
-    // Para a pré-visualização se estiver rodando
     if (isPreviewing) {
         stopPreview();
     }
     
     saveCurrentFrame();
     
-    // Remove frames nulos
     const validFrames = animatorFrames.filter(f => f !== null);
     if (validFrames.length === 0) {
         alert('Crie pelo menos um quadro com desenho!');
