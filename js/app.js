@@ -1,13 +1,13 @@
 // CONFIGURAÇÃO DO FIREBASE
 // ⚠️ ATENÇÃO: Você precisa substituir com seus próprios dados do Firebase!
-  const firebaseConfig = {
+const firebaseConfig = {
     apiKey: "AIzaSyBfy9NSEVm_PGvQIIvZquCsxTygnt-uapQ",
     authDomain: "produza-um-filme.firebaseapp.com",
     projectId: "produza-um-filme",
     storageBucket: "produza-um-filme.firebasestorage.app",
     messagingSenderId: "20415251900",
     appId: "1:20415251900:web:3f94757101862baf3997b9"
-  };
+};
 
 // Inicializa o Firebase
 firebase.initializeApp(firebaseConfig);
@@ -41,11 +41,25 @@ function showScreen(screenId) {
     GameState.currentScreen = screenId;
 }
 
-// MOSTRAR TELA DE ESPERA
+// MOSTRAR TELA DE ESPERA (VERSÃO MELHORADA)
 function showWaiting(message, detail = '', emoji = '🎬') {
     showScreen('waitingScreen');
     document.getElementById('waitingMessage').textContent = message;
     document.getElementById('waitingDetail').textContent = detail;
+    document.getElementById('waitingEmoji').textContent = emoji;
+}
+
+// MOSTRAR TELA DE ESPERA COM NOME DO FILME
+function showWaitingWithMovie(message, detail, emoji = '🎬', movieTitle = '') {
+    showScreen('waitingScreen');
+    document.getElementById('waitingMessage').textContent = message;
+    
+    if (movieTitle) {
+        document.getElementById('waitingDetail').innerHTML = `${detail}<br><span style="color: var(--accent); font-weight: 700; display: block; margin-top: 8px;">🎞️ "${movieTitle}"</span>`;
+    } else {
+        document.getElementById('waitingDetail').textContent = detail;
+    }
+    
     document.getElementById('waitingEmoji').textContent = emoji;
 }
 
@@ -245,20 +259,29 @@ function listenRoomChanges() {
             setupRoles(data);
         }
         
-        // Tela de espera para etapas
+        // ============ TELA DO DIRETOR ============
         if (data.step === 'director') {
             if (GameState.role === 'director') {
                 showScreen('directorScreen');
+                loadDirectorData(data);
             } else if (GameState.currentScreen !== 'waitingScreen') {
                 showWaiting('🎬 O Diretor está escrevendo a cena...', 'Aguardando o Diretor finalizar', '🎬');
             }
         }
         
+        // ============ TELA DO ANIMADOR ============
         if (data.step === 'animator') {
             if (GameState.role === 'animator') {
                 showScreen('animatorScreen');
+                loadAnimatorData(data);
             } else if (GameState.currentScreen !== 'waitingScreen') {
-                showWaiting('🎨 O Animador está criando a animação...', 'Aguardando o Animador finalizar', '🎨');
+                const title = data.gameData?.directorTitle || '';
+                showWaitingWithMovie(
+                    '🎨 O Animador está criando a animação...',
+                    'Aguardando o Animador finalizar',
+                    '🎨',
+                    title
+                );
             }
         }
         
@@ -443,7 +466,82 @@ function startGame() {
 }
 
 // ============ DIRETOR ============
-// Placeholder: será implementado na próxima fase
+
+// Quando o Diretor clicar em "ENVIAR PARA O ANIMADOR"
+document.getElementById('submitDirectorBtn').addEventListener('click', () => {
+    const title = document.getElementById('movieTitle').value.trim();
+    const description = document.getElementById('movieDescription').value.trim();
+
+    // Validação
+    if (!title) {
+        alert('🎞️ Digite o nome do filme!');
+        document.getElementById('movieTitle').focus();
+        return;
+    }
+
+    if (!description) {
+        alert('📝 Digite a descrição da animação!');
+        document.getElementById('movieDescription').focus();
+        return;
+    }
+
+    if (description.length < 10) {
+        alert('📝 A descrição deve ter pelo menos 10 caracteres!');
+        document.getElementById('movieDescription').focus();
+        return;
+    }
+
+    // Atualiza o Firebase com as informações do Diretor
+    const roomRef = db.ref('rooms/' + GameState.roomId);
+    roomRef.update({
+        'gameData/directorTitle': title,
+        'gameData/directorDescription': description,
+        step: 'animator'
+    }).then(() => {
+        // Mostra tela de espera para o Diretor
+        showWaitingWithMovie(
+            '🎬 Filme enviado para o Animador!',
+            `Aguardando o Animador criar a cena`,
+            '🎨',
+            title
+        );
+    }).catch(err => {
+        console.error('Erro ao enviar filme:', err);
+        alert('Erro ao enviar. Tente novamente.');
+    });
+});
+
+// Preenche automaticamente se o Diretor já tiver enviado antes (reconexão)
+function loadDirectorData(data) {
+    if (data.gameData && data.gameData.directorTitle) {
+        document.getElementById('movieTitle').value = data.gameData.directorTitle;
+        document.getElementById('movieDescription').value = data.gameData.directorDescription;
+    }
+}
+
+// ============ ANIMADOR (PLACEHOLDER) ============
+
+function loadAnimatorData(data) {
+    console.log('🔄 Animador carregado com dados:', data);
+    // Será implementado na Fase 4
+}
+
+// ============ INICIALIZAÇÃO ============
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Se for uma nova partida, limpa os campos do Diretor
+    if (GameState.roomId) {
+        const roomRef = db.ref('rooms/' + GameState.roomId);
+        roomRef.once('value').then(snapshot => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                if (data.step === 'director' && GameState.role === 'director') {
+                    // Se já tem dados, carrega
+                    loadDirectorData(data);
+                }
+            }
+        });
+    }
+    
     console.log('🎬 Produza um Filme - Inicializado!');
 });
