@@ -470,7 +470,7 @@ function leaveRoom() {
     showScreen('homeScreen');
 }
 
-// ============ SELEÇÃO DE CARGOS (CORRIGIDA - SINCRONIZAÇÃO) ============
+// ============ SELEÇÃO DE CARGOS ============
 function getRolesForMode(playerCount) {
     if (playerCount === 2) {
         return [
@@ -501,7 +501,6 @@ function setupRoles(data) {
     const availableRoles = getRolesForMode(maxPlayers);
     const takenRoles = {};
     
-    // Mapeia os cargos já escolhidos
     if (data.players) {
         Object.values(data.players).forEach(p => {
             if (p.role) {
@@ -510,7 +509,6 @@ function setupRoles(data) {
         });
     }
     
-    // Verifica se o jogador atual já escolheu um cargo
     const myRole = GameState.role;
     
     availableRoles.forEach(role => {
@@ -520,7 +518,6 @@ function setupRoles(data) {
         const isMine = (myRole === role.id);
         
         if (isTaken && !isMine) {
-            // Cargo ocupado por outro jogador
             card.classList.add('taken');
             card.innerHTML = `
                 <span class="role-icon">${role.icon}</span>
@@ -530,7 +527,6 @@ function setupRoles(data) {
             `;
             card.style.cursor = 'not-allowed';
         } else if (isMine) {
-            // Meu cargo selecionado
             card.classList.add('selected');
             card.style.borderColor = 'var(--primary)';
             card.style.background = 'rgba(108, 60, 225, 0.2)';
@@ -542,7 +538,6 @@ function setupRoles(data) {
             `;
             card.style.cursor = 'default';
         } else {
-            // Cargo disponível
             card.innerHTML = `
                 <span class="role-icon">${role.icon}</span>
                 <div class="role-name">${role.name}</div>
@@ -563,9 +558,7 @@ function setupRoles(data) {
     
     if (takenCount >= totalRoles) {
         document.getElementById('rolesStatus').textContent = '✅ Todos os cargos escolhidos! Iniciando...';
-        // Aguarda um momento para garantir que todos viram
         setTimeout(() => {
-            // Verifica novamente se todos ainda estão escolhidos
             const roomRef = db.ref('rooms/' + GameState.roomId);
             roomRef.once('value').then(snap => {
                 if (snap.exists()) {
@@ -589,13 +582,11 @@ function setupRoles(data) {
 function selectRole(roleId) {
     const roomRef = db.ref('rooms/' + GameState.roomId);
     
-    // Primeiro, verifica se o cargo ainda está disponível
     roomRef.once('value').then(snapshot => {
         if (!snapshot.exists()) return;
         const data = snapshot.val();
         const players = data.players || {};
         
-        // Verifica se alguém já pegou este cargo
         let alreadyTaken = false;
         let takenByName = '';
         Object.values(players).forEach(p => {
@@ -607,26 +598,22 @@ function selectRole(roleId) {
         
         if (alreadyTaken) {
             alert(`🔒 O cargo de "${getRoleName(roleId)}" já foi escolhido por ${takenByName}!`);
-            // Atualiza a interface para refletir a mudança
             roomRef.once('value').then(snap => {
                 if (snap.exists()) setupRoles(snap.val());
             });
             return;
         }
         
-        // Se o jogador já tem um cargo, libera o anterior
         if (GameState.role) {
             const releaseUpdate = {};
             releaseUpdate['players/' + GameState.playerId + '/role'] = null;
             roomRef.update(releaseUpdate);
         }
         
-        // Escolhe o novo cargo
         const newUpdates = {};
         newUpdates['players/' + GameState.playerId + '/role'] = roleId;
         roomRef.update(newUpdates).then(() => {
             GameState.role = roleId;
-            // Atualiza a interface para todos
             roomRef.once('value').then(snap => {
                 if (snap.exists()) {
                     setupRoles(snap.val());
@@ -702,9 +689,410 @@ function loadDirectorData(data) {
     }
 }
 
-// ============ ANIMADOR (PLACEHOLDER) ============
+// ============ ANIMADOR (COMPLETO) ============
+
+// Variáveis do Animador
+let animatorFrames = [];
+let currentFrameIndex = 0;
+let isDrawing = false;
+let lastX = 0;
+let lastY = 0;
+let currentTool = 'pen';
+let currentColor = '#000000';
+let currentSize = 4;
+let isAnimatorInitialized = false;
+let previewInterval = null;
+let isPreviewing = false;
+
 function loadAnimatorData(data) {
     console.log('🔄 Animador carregado com dados:', data);
+    
+    // Mostra as instruções do Diretor
+    if (data.gameData) {
+        document.getElementById('animatorMovieTitle').textContent = data.gameData.directorTitle || 'Sem título';
+        document.getElementById('animatorMovieDesc').textContent = data.gameData.directorDescription || 'Sem descrição';
+    }
+    
+    // Carrega frames salvos se existirem
+    if (data.gameData && data.gameData.frames && data.gameData.frames.length > 0) {
+        animatorFrames = data.gameData.frames;
+        currentFrameIndex = 0;
+    } else {
+        // Inicia com um frame em branco
+        animatorFrames = [];
+        addNewFrame();
+    }
+    
+    // Inicializa o canvas
+    if (!isAnimatorInitialized) {
+        initAnimatorCanvas();
+        isAnimatorInitialized = true;
+    }
+    
+    // Carrega o frame atual
+    loadFrame(currentFrameIndex);
+    updateFrameList();
+}
+
+function initAnimatorCanvas() {
+    const canvas = document.getElementById('animationCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Configura o canvas
+    canvas.width = 600;
+    canvas.height = 400;
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Eventos de desenho (mouse)
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', endDraw);
+    canvas.addEventListener('mouseleave', endDraw);
+    
+    // Eventos de desenho (toque - mobile)
+    canvas.addEventListener('touchstart', handleTouchStart);
+    canvas.addEventListener('touchmove', handleTouchMove);
+    canvas.addEventListener('touchend', endDraw);
+    
+    // Ferramentas
+    document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentTool = btn.dataset.tool;
+        });
+    });
+    
+    // Cor
+    document.getElementById('colorPicker').addEventListener('change', (e) => {
+        currentColor = e.target.value;
+    });
+    
+    // Tamanho do pincel
+    document.getElementById('brushSize').addEventListener('change', (e) => {
+        currentSize = parseInt(e.target.value);
+    });
+    
+    // Botões
+    document.getElementById('undoBtn').addEventListener('click', undoFrame);
+    document.getElementById('redoBtn').addEventListener('click', redoFrame);
+    document.getElementById('clearBtn').addEventListener('click', clearCurrentFrame);
+    document.getElementById('addFrameBtn').addEventListener('click', addNewFrame);
+    document.getElementById('duplicateFrameBtn').addEventListener('click', duplicateFrame);
+    document.getElementById('deleteFrameBtn').addEventListener('click', deleteFrame);
+    document.getElementById('previewAnimationBtn').addEventListener('click', togglePreview);
+    document.getElementById('finishAnimationBtn').addEventListener('click', finishAnimation);
+}
+
+// ============ FUNÇÕES DE DESENHO ============
+
+function startDraw(e) {
+    isDrawing = true;
+    const canvas = document.getElementById('animationCanvas');
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    lastX = (e.clientX - rect.left) * scaleX;
+    lastY = (e.clientY - rect.top) * scaleY;
+}
+
+function draw(e) {
+    if (!isDrawing) return;
+    
+    const canvas = document.getElementById('animationCanvas');
+    const ctx = canvas.getContext('2d');
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * scaleX;
+    const y = (e.clientY - rect.top) * scaleY;
+    
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    
+    if (currentTool === 'eraser') {
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = currentSize * 2;
+    } else if (currentTool === 'fill') {
+        // Preenchimento - apenas no clique
+        return;
+    } else {
+        ctx.strokeStyle = currentColor;
+        ctx.lineWidth = currentSize;
+    }
+    
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    
+    lastX = x;
+    lastY = y;
+}
+
+function endDraw() {
+    if (isDrawing) {
+        isDrawing = false;
+        saveCurrentFrame();
+    }
+}
+
+// ============ FUNÇÕES DE TOQUE (MOBILE) ============
+
+function handleTouchStart(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const mouseEvent = new MouseEvent('mousedown', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+    });
+    startDraw(mouseEvent);
+}
+
+function handleTouchMove(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const mouseEvent = new MouseEvent('mousemove', {
+        clientX: touch.clientX,
+        clientY: touch.clientY
+    });
+    draw(mouseEvent);
+}
+
+// ============ GERENCIAMENTO DE FRAMES ============
+
+function saveCurrentFrame() {
+    const canvas = document.getElementById('animationCanvas');
+    if (animatorFrames[currentFrameIndex] !== undefined) {
+        animatorFrames[currentFrameIndex] = canvas.toDataURL();
+    }
+}
+
+function loadFrame(index) {
+    const canvas = document.getElementById('animationCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (index >= 0 && index < animatorFrames.length && animatorFrames[index]) {
+        const img = new Image();
+        img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+        };
+        img.src = animatorFrames[index];
+    } else {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    
+    currentFrameIndex = index;
+    updateFrameList();
+}
+
+function updateFrameList() {
+    const list = document.getElementById('frameList');
+    list.innerHTML = '';
+    
+    animatorFrames.forEach((frame, index) => {
+        const thumb = document.createElement('div');
+        thumb.className = 'frame-thumb';
+        if (index === currentFrameIndex) thumb.classList.add('active');
+        
+        if (frame) {
+            thumb.style.backgroundImage = `url(${frame})`;
+            thumb.style.backgroundSize = 'cover';
+            thumb.style.backgroundPosition = 'center';
+        } else {
+            thumb.style.background = 'white';
+            thumb.style.border = '2px dashed rgba(255,255,255,0.2)';
+        }
+        
+        // Número do frame
+        const number = document.createElement('span');
+        number.className = 'frame-number';
+        number.textContent = index + 1;
+        thumb.appendChild(number);
+        
+        thumb.addEventListener('click', () => {
+            saveCurrentFrame();
+            loadFrame(index);
+        });
+        
+        list.appendChild(thumb);
+    });
+}
+
+function addNewFrame() {
+    saveCurrentFrame();
+    const canvas = document.getElementById('animationCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Cria um frame em branco
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.fillStyle = 'white';
+    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    animatorFrames.push(tempCanvas.toDataURL());
+    
+    currentFrameIndex = animatorFrames.length - 1;
+    loadFrame(currentFrameIndex);
+    updateFrameList();
+}
+
+function duplicateFrame() {
+    const canvas = document.getElementById('animationCanvas');
+    animatorFrames.push(canvas.toDataURL());
+    currentFrameIndex = animatorFrames.length - 1;
+    loadFrame(currentFrameIndex);
+    updateFrameList();
+}
+
+function deleteFrame() {
+    if (animatorFrames.length <= 1) {
+        alert('Você precisa ter pelo menos um quadro!');
+        return;
+    }
+    
+    if (confirm('Tem certeza que deseja remover este quadro?')) {
+        animatorFrames.splice(currentFrameIndex, 1);
+        if (currentFrameIndex >= animatorFrames.length) {
+            currentFrameIndex = animatorFrames.length - 1;
+        }
+        loadFrame(currentFrameIndex);
+        updateFrameList();
+    }
+}
+
+function undoFrame() {
+    // Implementação simples: não temos histórico, então recarrega o frame
+    loadFrame(currentFrameIndex);
+}
+
+function redoFrame() {
+    // Implementação simples: não temos histórico, então recarrega o frame
+    loadFrame(currentFrameIndex);
+}
+
+function clearCurrentFrame() {
+    if (confirm('Tem certeza que deseja limpar este quadro?')) {
+        const canvas = document.getElementById('animationCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        saveCurrentFrame();
+        updateFrameList();
+    }
+}
+
+// ============ PRÉ-VISUALIZAÇÃO ============
+
+function togglePreview() {
+    if (isPreviewing) {
+        stopPreview();
+    } else {
+        startPreview();
+    }
+}
+
+function startPreview() {
+    if (animatorFrames.length === 0 || animatorFrames.every(f => f === null)) {
+        alert('Crie pelo menos um quadro antes de pré-visualizar!');
+        return;
+    }
+    
+    isPreviewing = true;
+    document.getElementById('previewAnimationBtn').textContent = '⏹ PARAR PRÉ-VISUALIZAÇÃO';
+    
+    saveCurrentFrame();
+    let index = 0;
+    const canvas = document.getElementById('animationCanvas');
+    const ctx = canvas.getContext('2d');
+    const delay = 200; // 5 fps
+    
+    previewInterval = setInterval(() => {
+        if (index >= animatorFrames.length) {
+            index = 0;
+        }
+        
+        const frame = animatorFrames[index];
+        if (frame) {
+            const img = new Image();
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+            };
+            img.src = frame;
+        } else {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        index++;
+    }, delay);
+}
+
+function stopPreview() {
+    isPreviewing = false;
+    document.getElementById('previewAnimationBtn').textContent = '▶️ PRÉ-VISUALIZAR';
+    if (previewInterval) {
+        clearInterval(previewInterval);
+        previewInterval = null;
+    }
+    // Volta para o frame atual
+    loadFrame(currentFrameIndex);
+}
+
+// ============ FINALIZAR ANIMAÇÃO ============
+
+function finishAnimation() {
+    if (animatorFrames.length === 0 || animatorFrames.every(f => f === null)) {
+        alert('Crie pelo menos um quadro antes de finalizar!');
+        return;
+    }
+    
+    if (!confirm('Tem certeza que deseja finalizar sua animação? Não será possível editar depois.')) {
+        return;
+    }
+    
+    // Para a pré-visualização se estiver rodando
+    if (isPreviewing) {
+        stopPreview();
+    }
+    
+    saveCurrentFrame();
+    
+    // Remove frames nulos
+    const validFrames = animatorFrames.filter(f => f !== null);
+    if (validFrames.length === 0) {
+        alert('Crie pelo menos um quadro com desenho!');
+        return;
+    }
+    
+    const roomRef = db.ref('rooms/' + GameState.roomId);
+    
+    // Verifica se é modo 2 jogadores (pular Roteirista)
+    const nextStep = GameState.maxPlayers === 2 ? 'voice-actor' : 'screenwriter';
+    
+    roomRef.update({
+        'gameData/frames': validFrames,
+        step: nextStep
+    }).then(() => {
+        const waitingMsg = GameState.maxPlayers === 2 ? 
+            '🎙️ O Dublador está gravando...' : 
+            '📝 O Roteirista está escrevendo...';
+        const waitingEmoji = GameState.maxPlayers === 2 ? '🎙️' : '📝';
+        
+        showWaitingWithMovie(
+            waitingMsg,
+            'Aguardando a próxima etapa',
+            waitingEmoji,
+            document.getElementById('animatorMovieTitle').textContent
+        );
+    }).catch(err => {
+        console.error('Erro ao finalizar animação:', err);
+        alert('Erro ao finalizar. Tente novamente.');
+    });
 }
 
 // ============ INICIALIZAÇÃO ============
