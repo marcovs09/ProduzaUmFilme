@@ -58,7 +58,6 @@ function showWaiting(message, detail = '', emoji = '🎬', movieTitle = '') {
     document.getElementById('waitingEmoji').textContent = emoji;
 }
 
-// ============ GERADOR DE ID ÚNICO (CORRIGIDO) ============
 function generatePlayerId() {
     const timestamp = Date.now();
     const random1 = Math.random().toString(36).substring(2, 8);
@@ -182,7 +181,6 @@ function showJoinModal(roomCode) {
     });
 }
 
-// ============ ENTRAR NA SALA (CORRIGIDO) ============
 function executeJoinRoom(code, name, character) {
     const roomRef = db.ref('rooms/' + code);
     
@@ -197,17 +195,14 @@ function executeJoinRoom(code, name, character) {
         const playerIds = Object.keys(players);
         const maxPlayers = data.maxPlayers || 4;
         
-        // Verifica se a sala está cheia
         const currentPlayerCount = playerIds.length;
         if (currentPlayerCount >= maxPlayers) {
             alert('Sala cheia!');
             return;
         }
         
-        // 🔧 Gera um ID único para este jogador
         const newPlayerId = generatePlayerId();
         
-        // 🔧 Verifica se o ID já existe (extremamente raro, mas por segurança)
         if (players[newPlayerId]) {
             console.warn('⚠️ ID duplicado detectado, gerando outro...');
             return executeJoinRoom(code, name, character);
@@ -229,7 +224,6 @@ function executeJoinRoom(code, name, character) {
             joinedAt: Date.now()
         };
         
-        // 🔧 Adiciona o jogador sem sobrescrever os outros
         const updates = {};
         updates['players/' + newPlayerId] = playerData;
         
@@ -1287,7 +1281,7 @@ function submitScript() {
     });
 }
 
-// ============ DUBLADOR ============
+// ============ DUBLADOR (CORRIGIDO) ============
 let mediaRecorder = null;
 let audioChunks = [];
 let recordedAudio = null;
@@ -1295,19 +1289,39 @@ let isRecording = false;
 
 function loadVoiceActorData(data) {
     console.log('🔄 Dublador carregado com dados:', data);
+    console.log('📝 Modo:', GameState.maxPlayers, 'jogadores');
     
+    // Verifica se tem roteiro
     if (data.gameData && data.gameData.script) {
         document.getElementById('scriptDisplay').textContent = data.gameData.script;
         document.getElementById('recordingStatus').textContent = '🎙️ Pronto para gravar!';
         document.getElementById('recordBtn').disabled = false;
         document.getElementById('recordBtn').textContent = '🔴 GRAVAR';
+        document.getElementById('finishVoiceBtn').disabled = true;
+    } else {
+        // Se não tem roteiro, verifica se é modo 2 ou 3 (sem Roteirista)
+        const playerCount = GameState.maxPlayers;
+        
+        if (playerCount === 2 || playerCount === 3) {
+            // Modo sem Roteirista: o Dublador deve improvisar!
+            document.getElementById('scriptDisplay').textContent = '🎭 Modo improviso! Crie suas próprias falas baseado na animação!';
+            document.getElementById('recordingStatus').textContent = '🎙️ Modo improviso - grave sua dublagem!';
+            document.getElementById('recordBtn').disabled = false;
+            document.getElementById('recordBtn').textContent = '🔴 GRAVAR';
+            document.getElementById('finishVoiceBtn').disabled = true;
+        } else {
+            document.getElementById('scriptDisplay').textContent = 'Aguardando roteiro do Roteirista...';
+            document.getElementById('recordingStatus').textContent = 'Aguardando roteiro do Roteirista...';
+            document.getElementById('recordBtn').disabled = true;
+        }
     }
     
-    document.getElementById('recordBtn').addEventListener('click', startRecording);
-    document.getElementById('stopBtn').addEventListener('click', stopRecording);
-    document.getElementById('playbackBtn').addEventListener('click', playRecordedAudio);
-    document.getElementById('retryBtn').addEventListener('click', resetRecording);
-    document.getElementById('finishVoiceBtn').addEventListener('click', finishVoice);
+    // Configura eventos
+    document.getElementById('recordBtn').onclick = startRecording;
+    document.getElementById('stopBtn').onclick = stopRecording;
+    document.getElementById('playbackBtn').onclick = playRecordedAudio;
+    document.getElementById('retryBtn').onclick = resetRecording;
+    document.getElementById('finishVoiceBtn').onclick = finishVoice;
 }
 
 async function startRecording() {
