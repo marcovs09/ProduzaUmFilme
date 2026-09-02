@@ -21,7 +21,8 @@ const GameState = {
     players: {},
     role: null,
     currentScreen: 'home',
-    isHost: false
+    isHost: false,
+    lastStep: null
 };
 
 // ============ CONSTANTES ============
@@ -32,8 +33,7 @@ let selectedCharacter = null;
 let selectedPlayerCount = 4;
 let joinCharacter = null;
 
-// ============ FUNÇÕES DE UI (CORRIGIDAS) ============
-
+// ============ FUNÇÕES DE UI ============
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const screen = document.getElementById(screenId);
@@ -41,22 +41,7 @@ function showScreen(screenId) {
     GameState.currentScreen = screenId;
 }
 
-// CORRIGIDA: Força atualização mesmo se já estiver na tela de espera
-function showWaiting(message, detail = '', emoji = '🎬') {
-    if (GameState.currentScreen === 'waitingScreen') {
-        document.getElementById('waitingMessage').textContent = message;
-        document.getElementById('waitingDetail').textContent = detail;
-        document.getElementById('waitingEmoji').textContent = emoji;
-        return;
-    }
-    showScreen('waitingScreen');
-    document.getElementById('waitingMessage').textContent = message;
-    document.getElementById('waitingDetail').textContent = detail;
-    document.getElementById('waitingEmoji').textContent = emoji;
-}
-
-// CORRIGIDA: Força atualização mesmo se já estiver na tela de espera
-function showWaitingWithMovie(message, detail, emoji = '🎬', movieTitle = '') {
+function showWaiting(message, detail = '', emoji = '🎬', movieTitle = '') {
     const detailHTML = movieTitle 
         ? `${detail}<br><span style="color: var(--accent); font-weight: 700; display: block; margin-top: 8px;">🎞️ "${movieTitle}"</span>`
         : detail;
@@ -330,7 +315,7 @@ function createRoom() {
     });
 }
 
-// ============ LOBBY (VERSÃO CORRIGIDA) ============
+// ============ LOBBY ============
 function listenRoomChanges() {
     const roomRef = db.ref('rooms/' + GameState.roomId);
     roomRef.on('value', snapshot => {
@@ -357,11 +342,15 @@ function listenRoomChanges() {
             updateLobby();
         }
         
+        const currentStep = data.step || 'lobby';
+        const playerRole = GameState.role;
+        const playerCount = GameState.maxPlayers;
+        const movieTitle = data.gameData?.directorTitle || '';
+        
         // ============================================================
-        // GERENCIAMENTO DE TELAS - VERSÃO CORRIGIDA
+        // GERENCIAMENTO DE TELAS
         // ============================================================
         
-        // 1. TELA DE SELEÇÃO DE CARGOS
         if (data.status === 'roles') {
             if (GameState.currentScreen !== 'roleSelectionScreen') {
                 showScreen('roleSelectionScreen');
@@ -369,30 +358,25 @@ function listenRoomChanges() {
             } else {
                 setupRoles(data);
             }
+            GameState.lastStep = 'roles';
             return;
         }
         
-        // 2. JOGO EM ANDAMENTO
         if (data.status === 'playing') {
-            const currentStep = data.step;
-            const playerRole = GameState.role;
-            const playerCount = GameState.maxPlayers;
-            const movieTitle = data.gameData?.directorTitle || '';
-            
             // --- ETAPA DO DIRETOR ---
             if (currentStep === 'director') {
                 if (playerRole === 'director') {
                     showScreen('directorScreen');
                     loadDirectorData(data);
                 } else {
-                    // Qualquer outro jogador vê tela de espera
-                    showWaitingWithMovie(
+                    showWaiting(
                         '🎬 O Diretor está escrevendo a cena...',
                         'Aguardando o Diretor finalizar',
                         '🎬',
                         movieTitle
                     );
                 }
+                GameState.lastStep = currentStep;
                 return;
             }
             
@@ -402,36 +386,38 @@ function listenRoomChanges() {
                     showScreen('animatorScreen');
                     loadAnimatorData(data);
                 } else {
-                    // Qualquer outro jogador vê tela de espera
-                    showWaitingWithMovie(
+                    showWaiting(
                         '🎨 O Animador está criando a animação...',
                         'Aguardando o Animador finalizar',
                         '🎨',
                         movieTitle
                     );
                 }
+                GameState.lastStep = currentStep;
                 return;
             }
             
-            // --- ETAPA DO ROTEIRISTA (APENAS MODO 4) ---
+            // --- ETAPA DO ROTEIRISTA ---
             if (currentStep === 'screenwriter') {
                 if (playerCount !== 4) {
-                    console.warn('⚠️ Modo sem Roteirista, mas step=screenwriter. Corrigindo...');
                     const roomRefUpdate = db.ref('rooms/' + GameState.roomId);
                     roomRefUpdate.update({ step: 'voice-actor' });
+                    GameState.lastStep = currentStep;
                     return;
                 }
                 
                 if (playerRole === 'screenwriter') {
                     showScreen('screenwriterScreen');
+                    loadScreenwriterData(data);
                 } else {
-                    showWaitingWithMovie(
+                    showWaiting(
                         '📝 O Roteirista está escrevendo...',
                         'Aguardando o Roteirista finalizar',
                         '📝',
                         movieTitle
                     );
                 }
+                GameState.lastStep = currentStep;
                 return;
             }
             
@@ -439,23 +425,28 @@ function listenRoomChanges() {
             if (currentStep === 'voice-actor') {
                 if (playerRole === 'voice-actor') {
                     showScreen('voiceActorScreen');
+                    loadVoiceActorData(data);
                 } else {
-                    showWaitingWithMovie(
+                    showWaiting(
                         '🎙️ O Dublador está gravando...',
                         'Aguardando o Dublador finalizar',
                         '🎙️',
                         movieTitle
                     );
                 }
+                GameState.lastStep = currentStep;
                 return;
             }
             
-            // --- RESULTADO FINAL ---
+            // --- RESULTADO ---
             if (currentStep === 'result') {
                 showScreen('resultScreen');
+                GameState.lastStep = currentStep;
                 return;
             }
         }
+        
+        GameState.lastStep = currentStep;
     });
 }
 
@@ -531,6 +522,7 @@ function leaveRoom() {
     GameState.playerId = null;
     GameState.isHost = false;
     GameState.role = null;
+    GameState.lastStep = null;
     showScreen('homeScreen');
 }
 
@@ -734,9 +726,9 @@ document.getElementById('submitDirectorBtn').addEventListener('click', () => {
         'gameData/directorDescription': description,
         step: 'animator'
     }).then(() => {
-        showWaitingWithMovie(
+        showWaiting(
             '🎬 Filme enviado para o Animador!',
-            `Aguardando o Animador criar a cena`,
+            'Aguardando o Animador criar a cena',
             '🎨',
             title
         );
@@ -1076,7 +1068,6 @@ function stopPreview() {
     loadFrame(currentFrameIndex);
 }
 
-// ============ FINALIZAR ANIMAÇÃO ============
 function finishAnimation() {
     if (animatorFrames.length === 0 || animatorFrames.every(f => f === null)) {
         alert('Crie pelo menos um quadro antes de finalizar!');
@@ -1125,7 +1116,7 @@ function finishAnimation() {
             waitingEmoji = '🎙️';
         }
         
-        showWaitingWithMovie(
+        showWaiting(
             waitingMsg,
             'Aguardando a próxima etapa',
             waitingEmoji,
@@ -1135,6 +1126,193 @@ function finishAnimation() {
         console.error('Erro ao finalizar animação:', err);
         alert('Erro ao finalizar. Tente novamente.');
     });
+}
+
+// ============ ROTEIRISTA (NOVO) ============
+
+let previewFrames = [];
+let isPreviewPlaying = false;
+let previewIntervalId = null;
+let currentPreviewFrame = 0;
+
+function loadScreenwriterData(data) {
+    console.log('🔄 Roteirista carregado com dados:', data);
+    
+    // Carrega os frames da animação
+    if (data.gameData && data.gameData.frames && data.gameData.frames.length > 0) {
+        previewFrames = data.gameData.frames;
+    } else {
+        previewFrames = [];
+    }
+    
+    // Se já tinha um roteiro salvo, carrega
+    if (data.gameData && data.gameData.script) {
+        document.getElementById('scriptText').value = data.gameData.script;
+    }
+    
+    // Inicializa o canvas de pré-visualização
+    setupPreviewCanvas();
+    updateFrameCounter();
+}
+
+function setupPreviewCanvas() {
+    const canvas = document.getElementById('previewCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 600;
+    canvas.height = 400;
+    
+    // Mostra o primeiro frame ou tela em branco
+    if (previewFrames.length > 0 && previewFrames[0]) {
+        const img = new Image();
+        img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+        };
+        img.src = previewFrames[0];
+    } else {
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.font = '20px Nunito, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🎬 Aguardando animação...', canvas.width/2, canvas.height/2);
+    }
+    
+    // Configura os botões de controle
+    document.getElementById('playBtn').addEventListener('click', playPreview);
+    document.getElementById('pauseBtn').addEventListener('click', pausePreview);
+    document.getElementById('restartBtn').addEventListener('click', restartPreview);
+    
+    document.getElementById('fpsSlider').addEventListener('input', (e) => {
+        document.getElementById('fpsValue').textContent = e.target.value + ' FPS';
+        if (isPreviewPlaying) {
+            pausePreview();
+            playPreview();
+        }
+    });
+    
+    // Botão de enviar roteiro
+    document.getElementById('submitScriptBtn').addEventListener('click', submitScript);
+}
+
+function updateFrameCounter() {
+    const total = previewFrames.length;
+    const current = Math.min(currentPreviewFrame + 1, total);
+    document.getElementById('frameCounter').textContent = `Quadro ${current} / ${total}`;
+}
+
+function playPreview() {
+    if (previewFrames.length === 0) {
+        alert('Ainda não há animação para visualizar!');
+        return;
+    }
+    
+    if (isPreviewPlaying) return;
+    
+    isPreviewPlaying = true;
+    const canvas = document.getElementById('previewCanvas');
+    const ctx = canvas.getContext('2d');
+    const fps = parseInt(document.getElementById('fpsSlider').value);
+    const delay = 1000 / fps;
+    
+    if (currentPreviewFrame >= previewFrames.length) {
+        currentPreviewFrame = 0;
+    }
+    
+    previewIntervalId = setInterval(() => {
+        if (currentPreviewFrame >= previewFrames.length) {
+            currentPreviewFrame = 0;
+        }
+        
+        const frame = previewFrames[currentPreviewFrame];
+        if (frame) {
+            const img = new Image();
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+            };
+            img.src = frame;
+        } else {
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        currentPreviewFrame++;
+        updateFrameCounter();
+    }, delay);
+}
+
+function pausePreview() {
+    isPreviewPlaying = false;
+    if (previewIntervalId) {
+        clearInterval(previewIntervalId);
+        previewIntervalId = null;
+    }
+}
+
+function restartPreview() {
+    pausePreview();
+    currentPreviewFrame = 0;
+    updateFrameCounter();
+    
+    const canvas = document.getElementById('previewCanvas');
+    const ctx = canvas.getContext('2d');
+    if (previewFrames.length > 0 && previewFrames[0]) {
+        const img = new Image();
+        img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+        };
+        img.src = previewFrames[0];
+    }
+}
+
+function submitScript() {
+    const script = document.getElementById('scriptText').value.trim();
+    
+    if (!script) {
+        alert('📝 Escreva o roteiro de dublagem!');
+        document.getElementById('scriptText').focus();
+        return;
+    }
+    
+    if (script.length < 5) {
+        alert('📝 O roteiro deve ter pelo menos 5 caracteres!');
+        document.getElementById('scriptText').focus();
+        return;
+    }
+    
+    const roomRef = db.ref('rooms/' + GameState.roomId);
+    roomRef.update({
+        'gameData/script': script,
+        step: 'voice-actor'
+    }).then(() => {
+        // Para a pré-visualização se estiver rodando
+        if (isPreviewPlaying) {
+            pausePreview();
+        }
+        
+        showWaiting(
+            '🎙️ O Dublador está gravando...',
+            'Aguardando o Dublador finalizar',
+            '🎙️',
+            document.getElementById('animatorMovieTitle')?.textContent || ''
+        );
+    }).catch(err => {
+        console.error('Erro ao enviar roteiro:', err);
+        alert('Erro ao enviar roteiro. Tente novamente.');
+    });
+}
+
+// ============ DUBLADOR (placeholder) ============
+function loadVoiceActorData(data) {
+    console.log('🔄 Dublador carregado com dados:', data);
+    
+    if (data.gameData && data.gameData.script) {
+        document.getElementById('scriptDisplay').textContent = data.gameData.script;
+        document.getElementById('recordingStatus').textContent = '🎙️ Pronto para gravar!';
+        document.getElementById('recordBtn').disabled = false;
+    }
 }
 
 // ============ INICIALIZAÇÃO ============
