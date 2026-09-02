@@ -333,7 +333,6 @@ function listenRoomChanges() {
         
         if (data.players) {
             GameState.players = data.players;
-            // Atualiza o role do jogador atual se mudou
             if (data.players[GameState.playerId]) {
                 const newRole = data.players[GameState.playerId].role;
                 if (newRole !== GameState.role) {
@@ -349,7 +348,6 @@ function listenRoomChanges() {
             setupRoles(data);
         }
         
-        // ============ SE JÁ ESTÁ NA TELA DE CARGOS, ATUALIZA EM TEMPO REAL ============
         if (data.status === 'roles' && GameState.currentScreen === 'roleSelectionScreen') {
             setupRoles(data);
         }
@@ -364,7 +362,7 @@ function listenRoomChanges() {
             }
         }
         
-        // ============ TELA DO ANIMADOR (CORRIGIDA) ============
+        // ============ TELA DO ANIMADOR ============
         if (data.step === 'animator') {
             if (GameState.role === 'animator') {
                 showScreen('animatorScreen');
@@ -380,13 +378,18 @@ function listenRoomChanges() {
             }
         }
         
-        // ============ TELA DO ROTEIRISTA ============
+        // ============ TELA DO ROTEIRISTA (APENAS MODO 4) ============
         if (data.step === 'screenwriter') {
             if (GameState.role === 'screenwriter') {
                 showScreen('screenwriterScreen');
-                // TODO: carregar dados do roteirista
             } else if (GameState.currentScreen !== 'waitingScreen') {
-                showWaiting('📝 O Roteirista está escrevendo...', 'Aguardando o Roteirista finalizar', '📝');
+                const title = data.gameData?.directorTitle || '';
+                showWaitingWithMovie(
+                    '📝 O Roteirista está escrevendo...',
+                    'Aguardando o Roteirista finalizar',
+                    '📝',
+                    title
+                );
             }
         }
         
@@ -394,9 +397,14 @@ function listenRoomChanges() {
         if (data.step === 'voice-actor') {
             if (GameState.role === 'voice-actor') {
                 showScreen('voiceActorScreen');
-                // TODO: carregar dados do dublador
             } else if (GameState.currentScreen !== 'waitingScreen') {
-                showWaiting('🎙️ O Dublador está gravando...', 'Aguardando o Dublador finalizar', '🎙️');
+                const title = data.gameData?.directorTitle || '';
+                showWaitingWithMovie(
+                    '🎙️ O Dublador está gravando...',
+                    'Aguardando o Dublador finalizar',
+                    '🎙️',
+                    title
+                );
             }
         }
         
@@ -702,7 +710,6 @@ function loadDirectorData(data) {
 
 // ============ ANIMADOR ============
 
-// Variáveis do Animador
 let animatorFrames = [];
 let currentFrameIndex = 0;
 let isDrawing = false;
@@ -718,29 +725,24 @@ let isPreviewing = false;
 function loadAnimatorData(data) {
     console.log('🔄 Animador carregado com dados:', data);
     
-    // Mostra as instruções do Diretor
     if (data.gameData) {
         document.getElementById('animatorMovieTitle').textContent = data.gameData.directorTitle || 'Sem título';
         document.getElementById('animatorMovieDesc').textContent = data.gameData.directorDescription || 'Sem descrição';
     }
     
-    // Carrega frames salvos se existirem
     if (data.gameData && data.gameData.frames && data.gameData.frames.length > 0) {
         animatorFrames = data.gameData.frames;
         currentFrameIndex = 0;
     } else {
-        // Inicia com um frame em branco
         animatorFrames = [];
         addNewFrame();
     }
     
-    // Inicializa o canvas
     if (!isAnimatorInitialized) {
         initAnimatorCanvas();
         isAnimatorInitialized = true;
     }
     
-    // Carrega o frame atual
     loadFrame(currentFrameIndex);
     updateFrameList();
 }
@@ -919,7 +921,6 @@ function updateFrameList() {
 function addNewFrame() {
     saveCurrentFrame();
     const canvas = document.getElementById('animationCanvas');
-    const ctx = canvas.getContext('2d');
     
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = canvas.width;
@@ -1031,6 +1032,7 @@ function stopPreview() {
     loadFrame(currentFrameIndex);
 }
 
+// ============ FINALIZAR ANIMAÇÃO (CORRIGIDO) ============
 function finishAnimation() {
     if (animatorFrames.length === 0 || animatorFrames.every(f => f === null)) {
         alert('Crie pelo menos um quadro antes de finalizar!');
@@ -1055,17 +1057,36 @@ function finishAnimation() {
     
     const roomRef = db.ref('rooms/' + GameState.roomId);
     
-    // Verifica se é modo 2 jogadores (pular Roteirista)
-    const nextStep = GameState.maxPlayers === 2 ? 'voice-actor' : 'screenwriter';
+    // CORREÇÃO: Define a próxima etapa baseada no número de jogadores
+    let nextStep;
+    const playerCount = GameState.maxPlayers;
+    
+    if (playerCount === 2) {
+        // Modo 2: Animador → Dublador
+        nextStep = 'voice-actor';
+    } else if (playerCount === 3) {
+        // Modo 3: Animador → Dublador (pula Roteirista)
+        nextStep = 'voice-actor';
+    } else {
+        // Modo 4: Animador → Roteirista
+        nextStep = 'screenwriter';
+    }
+    
+    console.log('🔀 Próxima etapa:', nextStep, 'para', playerCount, 'jogadores');
     
     roomRef.update({
         'gameData/frames': validFrames,
         step: nextStep
     }).then(() => {
-        const waitingMsg = GameState.maxPlayers === 2 ? 
-            '🎙️ O Dublador está gravando...' : 
-            '📝 O Roteirista está escrevendo...';
-        const waitingEmoji = GameState.maxPlayers === 2 ? '🎙️' : '📝';
+        let waitingMsg, waitingEmoji;
+        
+        if (nextStep === 'screenwriter') {
+            waitingMsg = '📝 O Roteirista está escrevendo...';
+            waitingEmoji = '📝';
+        } else {
+            waitingMsg = '🎙️ O Dublador está gravando...';
+            waitingEmoji = '🎙️';
+        }
         
         showWaitingWithMovie(
             waitingMsg,
