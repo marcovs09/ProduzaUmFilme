@@ -278,12 +278,24 @@
             </div>
         </div>
 
-        <!-- ============ TELA DO DUBLADOR (NOVO) ============ -->
+        <!-- ============ TELA DO DUBLADOR (CORRIGIDA) ============ -->
         <div id="voiceActorScreen" class="screen">
             <div class="voice-container">
                 <div class="voice-header">
                     <h2 class="screen-title">🎙️ DUBLAGEM</h2>
                     <p class="voice-subtitle">Grave a voz dos personagens!</p>
+                </div>
+
+                <!-- 🔥 NOVO: Canvas para ver a animação -->
+                <div class="voice-preview">
+                    <div class="voice-preview-wrapper">
+                        <canvas id="voicePreviewCanvas" width="600" height="400"></canvas>
+                    </div>
+                    <div class="voice-playback-controls">
+                        <button id="voicePlayBtn" class="playback-btn" title="Reproduzir animação">▶️</button>
+                        <button id="voicePauseBtn" class="playback-btn" title="Pausar animação">⏸️</button>
+                        <button id="voiceRestartBtn" class="playback-btn" title="Reiniciar animação">🔄</button>
+                    </div>
                 </div>
 
                 <div class="script-display">
@@ -324,7 +336,7 @@
             </div>
         </div>
 
-        <!-- ============ TELA DE RESULTADO FINAL (NOVO) ============ -->
+        <!-- TELA DE RESULTADO FINAL -->
         <div id="resultScreen" class="screen">
             <div class="result-container">
                 <div class="result-header">
