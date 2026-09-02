@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🎬 Produza Um Filme</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="stylesheet" href="css/animations.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+    <div id="app">
+        <!-- TELA INICIAL -->
+        <div id="homeScreen" class="screen active">
+            <div class="home-container">
+                <div class="decorative-elements">
+                    <div class="clapper">🎬</div>
+                    <div class="film-roll">🎞️</div>
+                    <div class="star">⭐</div>
+                    <div class="microphone">🎙️</div>
+                    <div class="pencil">✏️</div>
+                </div>
+
+                <div class="logo-container">
+                    <h1 class="main-title">
+                        <span class="title-icon">🎬</span>
+                        PRODUZA UM FILME
+                    </h1>
+                    <p class="subtitle">Sua ideia. Sua animação. Seu filme.</p>
+                </div>
+
+                <div class="menu-actions">
+                    <button id="createRoomBtn" class="btn btn-primary btn-large">
+                        🎬 CRIAR SALA
+                    </button>
+
+                    <div class="join-section">
+                        <label for="roomCode" class="input-label">Código da sala</label>
+                        <div class="input-group">
+                            <input type="text" id="roomCode" class="input-code" placeholder="EX: A7K9P" maxlength="6" />
+                            <button id="joinRoomBtn" class="btn btn-secondary">ENTRAR</button>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="footer-text">
+                    🎯 Jogo multiplayer para 2 a 4 jogadores
+                </p>
+            </div>
+        </div>
+
+        <!-- TELA DE CRIAÇÃO DE SALA -->
+        <div id="createRoomScreen" class="screen">
+            <div class="create-container">
+                <button class="btn-back" id="backFromCreate">← Voltar</button>
+                
+                <h2 class="screen-title">🎬 CRIAR SALA</h2>
+                
+                <div class="form-group">
+                    <label for="playerName">Seu nome</label>
+                    <input type="text" id="playerName" class="input-field" placeholder="Digite seu nickname" maxlength="20" />
+                </div>
+
+                <div class="form-group">
+                    <label>Escolha seu personagem</label>
+                    <div class="character-grid" id="characterGrid">
+                        <!-- Personagens serão inseridos via JS -->
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Quantos jogadores?</label>
+                    <div class="player-count-options">
+                        <button class="count-option" data-count="2">👥 2</button>
+                        <button class="count-option" data-count="3">👥 3</button>
+                        <button class="count-option selected" data-count="4">👥 4</button>
+                    </div>
+                </div>
+
+                <button id="confirmCreateRoom" class="btn btn-primary btn-large">
+                    🚀 CRIAR SALA
+                </button>
+            </div>
+        </div>
+
+        <!-- TELA DE LOBBY -->
+        <div id="lobbyScreen" class="screen">
+            <div class="lobby-container">
+                <div class="lobby-header">
+                    <h2>🎬 Sala <span id="roomCodeDisplay">XXXXX</span></h2>
+                    <button id="copyCodeBtn" class="btn-copy">📋 COPIAR</button>
+                </div>
+
+                <div class="players-grid" id="playersGrid">
+                    <!-- Jogadores serão inseridos via JS -->
+                </div>
+
+                <div class="lobby-actions">
+                    <button id="startGameBtn" class="btn btn-primary" disabled>
+                        🎬 INICIAR PARTIDA
+                    </button>
+                    <button id="leaveLobbyBtn" class="btn btn-secondary">
+                        🚪 SAIR
+                    </button>
+                </div>
+
+                <div class="lobby-status" id="lobbyStatus">
+                    Aguardando jogadores...
+                </div>
+            </div>
+        </div>
+
+        <!-- TELA DE ESCOLHA DE CARGOS -->
+        <div id="roleSelectionScreen" class="screen">
+            <div class="roles-container">
+                <h2 class="screen-title">🎭 ESCOLHA SEU CARGO</h2>
+                <div class="roles-grid" id="rolesGrid">
+                    <!-- Cargos serão inseridos via JS -->
+                </div>
+                <div class="roles-status" id="rolesStatus">
+                    Aguardando todos escolherem...
+                </div>
+            </div>
+        </div>
+
+        <!-- TELA DE ESPERA -->
+        <div id="waitingScreen" class="screen">
+            <div class="waiting-container">
+                <div class="waiting-animation">
+                    <span class="emoji-large" id="waitingEmoji">🎬</span>
+                </div>
+                <h2 id="waitingMessage">Aguardando...</h2>
+                <p id="waitingDetail" class="waiting-detail"></p>
+                <div class="loading-dots">
+                    <span>.</span><span>.</span><span>.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- TELA DE RESULTADO (simplificada) -->
+        <div id="resultScreen" class="screen">
+            <div class="result-container">
+                <h2 class="screen-title">🎬 FILME CONCLUÍDO!</h2>
+                <div class="result-actions">
+                    <button id="exitResultBtn" class="btn btn-secondary">🚪 SAIR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase (CDN) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <!-- App principal -->
+    <script src="js/app.js"></script>
+</body>
+</html>
