@@ -177,8 +177,11 @@ function showJoinModal(roomCode) {
     });
 }
 
+// ============ ENTRAR NA SALA (CORRIGIDO) ============
 function executeJoinRoom(code, name, character) {
     const roomRef = db.ref('rooms/' + code);
+    
+    // 🔧 VERIFICAÇÃO: Limpa jogadores fantasmas
     roomRef.once('value').then(snapshot => {
         if (!snapshot.exists()) {
             alert('Sala não encontrada!');
@@ -186,11 +189,38 @@ function executeJoinRoom(code, name, character) {
         }
         
         const data = snapshot.val();
-        if (data.status === 'finished') {
-            alert('Esta sala já foi finalizada.');
+        const players = data.players || {};
+        const playerIds = Object.keys(players);
+        const maxPlayers = data.maxPlayers || 4;
+        
+        // Verifica se há jogadores "fantasmas" (desconectados)
+        const now = Date.now();
+        const maxInactiveTime = 30000; // 30 segundos
+        let hasGhosts = false;
+        
+        playerIds.forEach(id => {
+            const player = players[id];
+            if (player && player.joinedAt) {
+                const inactiveTime = now - player.joinedAt;
+                // Se o jogador está inativo há mais de 30 segundos e não é o host
+                if (inactiveTime > maxInactiveTime && !player.isHost) {
+                    hasGhosts = true;
+                    // Remove o jogador fantasma
+                    roomRef.child('players/' + id).remove();
+                    console.log('🧹 Jogador fantasma removido:', id);
+                }
+            }
+        });
+        
+        // Se removeu fantasmas, espera um momento e recarrega
+        if (hasGhosts) {
+            setTimeout(() => {
+                executeJoinRoom(code, name, character);
+            }, 500);
             return;
         }
         
+        // CONTINUAÇÃO DO CÓDIGO ORIGINAL
         const playerCount = Object.keys(data.players || {}).length;
         if (playerCount >= data.maxPlayers) {
             alert('Sala cheia!');
@@ -226,8 +256,8 @@ function executeJoinRoom(code, name, character) {
             alert('Erro ao entrar na sala.');
         });
     }).catch(err => {
-        console.error('Erro ao buscar sala:', err);
-        alert('Erro ao buscar sala. Verifique o código.');
+        console.error('Erro ao verificar sala:', err);
+        alert('Erro ao verificar sala. Tente novamente.');
     });
 }
 
@@ -510,19 +540,43 @@ document.getElementById('copyCodeBtn').addEventListener('click', () => {
 
 document.getElementById('leaveLobbyBtn').addEventListener('click', leaveRoom);
 
+// ============ SAIR DA SALA (CORRIGIDO) ============
 function leaveRoom() {
     if (GameState.roomId && GameState.playerId) {
-        const roomRef = db.ref('rooms/' + GameState.roomId + '/players/' + GameState.playerId);
-        roomRef.remove();
-        if (GameState.isHost) {
-            db.ref('rooms/' + GameState.roomId).remove();
-        }
+        const roomRef = db.ref('rooms/' + GameState.roomId);
+        
+        // Remove o jogador da sala
+        const playerRef = roomRef.child('players/' + GameState.playerId);
+        playerRef.remove().then(() => {
+            // Verifica se ainda há jogadores na sala
+            roomRef.once('value').then(snapshot => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    const players = data.players || {};
+                    const playerCount = Object.keys(players).length;
+                    
+                    // Se não houver mais jogadores, remove a sala
+                    if (playerCount === 0) {
+                        roomRef.remove().catch(err => {
+                            console.error('Erro ao remover sala:', err);
+                        });
+                    }
+                }
+            });
+        }).catch(err => {
+            console.error('Erro ao remover jogador:', err);
+        });
     }
+    
+    // Limpa o estado do jogador
     GameState.roomId = null;
     GameState.playerId = null;
     GameState.isHost = false;
     GameState.role = null;
     GameState.lastStep = null;
+    GameState.players = {};
+    GameState.maxPlayers = 4;
+    
     showScreen('homeScreen');
 }
 
@@ -1128,7 +1182,7 @@ function finishAnimation() {
     });
 }
 
-// ============ ROTEIRISTA (NOVO) ============
+// ============ ROTEIRISTA ============
 
 let previewFrames = [];
 let isPreviewPlaying = false;
@@ -1138,19 +1192,16 @@ let currentPreviewFrame = 0;
 function loadScreenwriterData(data) {
     console.log('🔄 Roteirista carregado com dados:', data);
     
-    // Carrega os frames da animação
     if (data.gameData && data.gameData.frames && data.gameData.frames.length > 0) {
         previewFrames = data.gameData.frames;
     } else {
         previewFrames = [];
     }
     
-    // Se já tinha um roteiro salvo, carrega
     if (data.gameData && data.gameData.script) {
         document.getElementById('scriptText').value = data.gameData.script;
     }
     
-    // Inicializa o canvas de pré-visualização
     setupPreviewCanvas();
     updateFrameCounter();
 }
@@ -1161,7 +1212,6 @@ function setupPreviewCanvas() {
     canvas.width = 600;
     canvas.height = 400;
     
-    // Mostra o primeiro frame ou tela em branco
     if (previewFrames.length > 0 && previewFrames[0]) {
         const img = new Image();
         img.onload = () => {
@@ -1178,7 +1228,6 @@ function setupPreviewCanvas() {
         ctx.fillText('🎬 Aguardando animação...', canvas.width/2, canvas.height/2);
     }
     
-    // Configura os botões de controle
     document.getElementById('playBtn').addEventListener('click', playPreview);
     document.getElementById('pauseBtn').addEventListener('click', pausePreview);
     document.getElementById('restartBtn').addEventListener('click', restartPreview);
@@ -1191,7 +1240,6 @@ function setupPreviewCanvas() {
         }
     });
     
-    // Botão de enviar roteiro
     document.getElementById('submitScriptBtn').addEventListener('click', submitScript);
 }
 
@@ -1287,7 +1335,6 @@ function submitScript() {
         'gameData/script': script,
         step: 'voice-actor'
     }).then(() => {
-        // Para a pré-visualização se estiver rodando
         if (isPreviewPlaying) {
             pausePreview();
         }
@@ -1304,7 +1351,7 @@ function submitScript() {
     });
 }
 
-// ============ DUBLADOR (placeholder) ============
+// ============ DUBLADOR ============
 function loadVoiceActorData(data) {
     console.log('🔄 Dublador carregado com dados:', data);
     
