@@ -58,8 +58,13 @@ function showWaiting(message, detail = '', emoji = '🎬', movieTitle = '') {
     document.getElementById('waitingEmoji').textContent = emoji;
 }
 
+// ============ GERADOR DE ID ÚNICO (CORRIGIDO) ============
 function generatePlayerId() {
-    return 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+    const timestamp = Date.now();
+    const random1 = Math.random().toString(36).substring(2, 8);
+    const random2 = Math.random().toString(36).substring(2, 5);
+    const random3 = Math.random().toString(36).substring(2, 4);
+    return 'p_' + timestamp + '_' + random1 + '_' + random2 + '_' + random3;
 }
 
 // ============ TELA INICIAL ============
@@ -177,7 +182,7 @@ function showJoinModal(roomCode) {
     });
 }
 
-// ============ ENTRAR NA SALA ============
+// ============ ENTRAR NA SALA (CORRIGIDO) ============
 function executeJoinRoom(code, name, character) {
     const roomRef = db.ref('rooms/' + code);
     
@@ -190,45 +195,33 @@ function executeJoinRoom(code, name, character) {
         const data = snapshot.val();
         const players = data.players || {};
         const playerIds = Object.keys(players);
+        const maxPlayers = data.maxPlayers || 4;
         
-        const now = Date.now();
-        const maxInactiveTime = 30000;
-        let hasGhosts = false;
-        
-        playerIds.forEach(id => {
-            const player = players[id];
-            if (player && player.joinedAt) {
-                const inactiveTime = now - player.joinedAt;
-                if (inactiveTime > maxInactiveTime && !player.isHost) {
-                    hasGhosts = true;
-                    roomRef.child('players/' + id).remove();
-                    console.log('🧹 Jogador fantasma removido:', id);
-                }
-            }
-        });
-        
-        if (hasGhosts) {
-            setTimeout(() => {
-                executeJoinRoom(code, name, character);
-            }, 500);
+        // Verifica se a sala está cheia
+        const currentPlayerCount = playerIds.length;
+        if (currentPlayerCount >= maxPlayers) {
+            alert('Sala cheia!');
             return;
         }
         
-        const playerCount = Object.keys(data.players || {}).length;
-        if (playerCount >= data.maxPlayers) {
-            alert('Sala cheia!');
-            return;
+        // 🔧 Gera um ID único para este jogador
+        const newPlayerId = generatePlayerId();
+        
+        // 🔧 Verifica se o ID já existe (extremamente raro, mas por segurança)
+        if (players[newPlayerId]) {
+            console.warn('⚠️ ID duplicado detectado, gerando outro...');
+            return executeJoinRoom(code, name, character);
         }
         
         GameState.playerName = name;
         GameState.character = character;
         GameState.roomId = code;
-        GameState.playerId = generatePlayerId();
+        GameState.playerId = newPlayerId;
         GameState.isHost = false;
         GameState.maxPlayers = data.maxPlayers;
         
         const playerData = {
-            id: GameState.playerId,
+            id: newPlayerId,
             name: name,
             character: character,
             isHost: false,
@@ -236,8 +229,9 @@ function executeJoinRoom(code, name, character) {
             joinedAt: Date.now()
         };
         
+        // 🔧 Adiciona o jogador sem sobrescrever os outros
         const updates = {};
-        updates['players/' + GameState.playerId] = playerData;
+        updates['players/' + newPlayerId] = playerData;
         
         roomRef.update(updates).then(() => {
             document.getElementById('roomCodeDisplay').textContent = code;
@@ -1294,7 +1288,6 @@ function submitScript() {
 }
 
 // ============ DUBLADOR ============
-
 let mediaRecorder = null;
 let audioChunks = [];
 let recordedAudio = null;
@@ -1310,7 +1303,6 @@ function loadVoiceActorData(data) {
         document.getElementById('recordBtn').textContent = '🔴 GRAVAR';
     }
     
-    // Configurar eventos
     document.getElementById('recordBtn').addEventListener('click', startRecording);
     document.getElementById('stopBtn').addEventListener('click', stopRecording);
     document.getElementById('playbackBtn').addEventListener('click', playRecordedAudio);
@@ -1408,7 +1400,6 @@ function finishVoice() {
 }
 
 // ============ RESULTADO FINAL ============
-
 let resultMovieTitle = '';
 let resultFrames = [];
 let resultAudio = null;
