@@ -32,7 +32,8 @@ let selectedCharacter = null;
 let selectedPlayerCount = 4;
 let joinCharacter = null;
 
-// ============ FUNÇÕES DE UI ============
+// ============ FUNÇÕES DE UI (CORRIGIDAS) ============
+
 function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     const screen = document.getElementById(screenId);
@@ -40,21 +41,35 @@ function showScreen(screenId) {
     GameState.currentScreen = screenId;
 }
 
+// CORRIGIDA: Força atualização mesmo se já estiver na tela de espera
 function showWaiting(message, detail = '', emoji = '🎬') {
+    if (GameState.currentScreen === 'waitingScreen') {
+        document.getElementById('waitingMessage').textContent = message;
+        document.getElementById('waitingDetail').textContent = detail;
+        document.getElementById('waitingEmoji').textContent = emoji;
+        return;
+    }
     showScreen('waitingScreen');
     document.getElementById('waitingMessage').textContent = message;
     document.getElementById('waitingDetail').textContent = detail;
     document.getElementById('waitingEmoji').textContent = emoji;
 }
 
+// CORRIGIDA: Força atualização mesmo se já estiver na tela de espera
 function showWaitingWithMovie(message, detail, emoji = '🎬', movieTitle = '') {
+    const detailHTML = movieTitle 
+        ? `${detail}<br><span style="color: var(--accent); font-weight: 700; display: block; margin-top: 8px;">🎞️ "${movieTitle}"</span>`
+        : detail;
+    
+    if (GameState.currentScreen === 'waitingScreen') {
+        document.getElementById('waitingMessage').textContent = message;
+        document.getElementById('waitingDetail').innerHTML = detailHTML;
+        document.getElementById('waitingEmoji').textContent = emoji;
+        return;
+    }
     showScreen('waitingScreen');
     document.getElementById('waitingMessage').textContent = message;
-    if (movieTitle) {
-        document.getElementById('waitingDetail').innerHTML = `${detail}<br><span style="color: var(--accent); font-weight: 700; display: block; margin-top: 8px;">🎞️ "${movieTitle}"</span>`;
-    } else {
-        document.getElementById('waitingDetail').textContent = detail;
-    }
+    document.getElementById('waitingDetail').innerHTML = detailHTML;
     document.getElementById('waitingEmoji').textContent = emoji;
 }
 
@@ -362,6 +377,7 @@ function listenRoomChanges() {
             const currentStep = data.step;
             const playerRole = GameState.role;
             const playerCount = GameState.maxPlayers;
+            const movieTitle = data.gameData?.directorTitle || '';
             
             // --- ETAPA DO DIRETOR ---
             if (currentStep === 'director') {
@@ -369,9 +385,13 @@ function listenRoomChanges() {
                     showScreen('directorScreen');
                     loadDirectorData(data);
                 } else {
-                    if (GameState.currentScreen !== 'waitingScreen') {
-                        showWaiting('🎬 O Diretor está escrevendo a cena...', 'Aguardando o Diretor finalizar', '🎬');
-                    }
+                    // Qualquer outro jogador vê tela de espera
+                    showWaitingWithMovie(
+                        '🎬 O Diretor está escrevendo a cena...',
+                        'Aguardando o Diretor finalizar',
+                        '🎬',
+                        movieTitle
+                    );
                 }
                 return;
             }
@@ -382,15 +402,13 @@ function listenRoomChanges() {
                     showScreen('animatorScreen');
                     loadAnimatorData(data);
                 } else {
-                    if (GameState.currentScreen !== 'waitingScreen') {
-                        const title = data.gameData?.directorTitle || '';
-                        showWaitingWithMovie(
-                            '🎨 O Animador está criando a animação...',
-                            'Aguardando o Animador finalizar',
-                            '🎨',
-                            title
-                        );
-                    }
+                    // Qualquer outro jogador vê tela de espera
+                    showWaitingWithMovie(
+                        '🎨 O Animador está criando a animação...',
+                        'Aguardando o Animador finalizar',
+                        '🎨',
+                        movieTitle
+                    );
                 }
                 return;
             }
@@ -407,15 +425,12 @@ function listenRoomChanges() {
                 if (playerRole === 'screenwriter') {
                     showScreen('screenwriterScreen');
                 } else {
-                    if (GameState.currentScreen !== 'waitingScreen') {
-                        const title = data.gameData?.directorTitle || '';
-                        showWaitingWithMovie(
-                            '📝 O Roteirista está escrevendo...',
-                            'Aguardando o Roteirista finalizar',
-                            '📝',
-                            title
-                        );
-                    }
+                    showWaitingWithMovie(
+                        '📝 O Roteirista está escrevendo...',
+                        'Aguardando o Roteirista finalizar',
+                        '📝',
+                        movieTitle
+                    );
                 }
                 return;
             }
@@ -425,15 +440,12 @@ function listenRoomChanges() {
                 if (playerRole === 'voice-actor') {
                     showScreen('voiceActorScreen');
                 } else {
-                    if (GameState.currentScreen !== 'waitingScreen') {
-                        const title = data.gameData?.directorTitle || '';
-                        showWaitingWithMovie(
-                            '🎙️ O Dublador está gravando...',
-                            'Aguardando o Dublador finalizar',
-                            '🎙️',
-                            title
-                        );
-                    }
+                    showWaitingWithMovie(
+                        '🎙️ O Dublador está gravando...',
+                        'Aguardando o Dublador finalizar',
+                        '🎙️',
+                        movieTitle
+                    );
                 }
                 return;
             }
@@ -1064,7 +1076,7 @@ function stopPreview() {
     loadFrame(currentFrameIndex);
 }
 
-// ============ FINALIZAR ANIMAÇÃO (CORRIGIDO) ============
+// ============ FINALIZAR ANIMAÇÃO ============
 function finishAnimation() {
     if (animatorFrames.length === 0 || animatorFrames.every(f => f === null)) {
         alert('Crie pelo menos um quadro antes de finalizar!');
@@ -1090,12 +1102,10 @@ function finishAnimation() {
     const roomRef = db.ref('rooms/' + GameState.roomId);
     const playerCount = GameState.maxPlayers;
     
-    // Define a próxima etapa baseada no número de jogadores
     let nextStep;
     if (playerCount === 4) {
         nextStep = 'screenwriter';
     } else {
-        // Modo 2 ou 3: vai direto para o Dublador
         nextStep = 'voice-actor';
     }
     
