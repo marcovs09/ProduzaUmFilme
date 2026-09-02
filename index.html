@@ -278,7 +278,7 @@
             </div>
         </div>
 
-        <!-- ============ TELA DO DUBLADOR (CORRIGIDA) ============ -->
+        <!-- TELA DO DUBLADOR -->
         <div id="voiceActorScreen" class="screen">
             <div class="voice-container">
                 <div class="voice-header">
@@ -286,7 +286,6 @@
                     <p class="voice-subtitle">Grave a voz dos personagens!</p>
                 </div>
 
-                <!-- 🔥 NOVO: Canvas para ver a animação -->
                 <div class="voice-preview">
                     <div class="voice-preview-wrapper">
                         <canvas id="voicePreviewCanvas" width="600" height="400"></canvas>
@@ -336,7 +335,7 @@
             </div>
         </div>
 
-        <!-- TELA DE RESULTADO FINAL -->
+        <!-- TELA DE RESULTADO FINAL (COM VIDEO) -->
         <div id="resultScreen" class="screen">
             <div class="result-container">
                 <div class="result-header">
@@ -345,11 +344,11 @@
                 </div>
 
                 <div class="movie-player">
-                    <canvas id="resultCanvas" width="600" height="400"></canvas>
+                    <video id="finalVideo" controls autoplay style="width: 100%; max-height: 400px; background: #0a0a1a; border-radius: 10px;"></video>
                     <div class="movie-controls">
-                        <button id="playMovieBtn" class="btn btn-secondary">▶️ ASSISTIR</button>
-                        <button id="pauseMovieBtn" class="btn btn-secondary">⏸️ PAUSAR</button>
-                        <button id="restartMovieBtn" class="btn btn-secondary">🔄 REINICIAR</button>
+                        <button id="playMovieBtn" class="btn btn-secondary">▶️ PLAY</button>
+                        <button id="pauseMovieBtn" class="btn btn-secondary">⏸️ PAUSE</button>
+                        <button id="restartMovieBtn" class="btn btn-secondary">🔄 RESTART</button>
                     </div>
                 </div>
 
