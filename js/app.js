@@ -1,14 +1,13 @@
 // CONFIGURAÇÃO DO FIREBASE
 // ⚠️ ATENÇÃO: Você precisa substituir com seus próprios dados do Firebase!
-const firebaseConfig = {
-    apiKey: "SUA_API_KEY",
-    authDomain: "SEU_PROJETO.firebaseapp.com",
-    databaseURL: "https://SEU_PROJETO-default-rtdb.firebaseio.com",
-    projectId: "SEU_PROJETO",
-    storageBucket: "SEU_PROJETO.appspot.com",
-    messagingSenderId: "SEU_SENDER_ID",
-    appId: "SEU_APP_ID"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyBfy9NSEVm_PGvQIIvZquCsxTygnt-uapQ",
+    authDomain: "produza-um-filme.firebaseapp.com",
+    projectId: "produza-um-filme",
+    storageBucket: "produza-um-filme.firebasestorage.app",
+    messagingSenderId: "20415251900",
+    appId: "1:20415251900:web:3f94757101862baf3997b9"
+  };
 
 // Inicializa o Firebase
 firebase.initializeApp(firebaseConfig);
