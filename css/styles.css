@@ -1,3 +1,4 @@
+/* ============ RESET E BASE ============ */
 * {
     margin: 0;
     padding: 0;
@@ -51,6 +52,7 @@ body {
     display: flex;
 }
 
+/* ============ TELA INICIAL ============ */
 .home-container {
     text-align: center;
     padding: 40px;
@@ -124,6 +126,7 @@ body {
     z-index: 1;
 }
 
+/* ============ BOTÕES ============ */
 .btn {
     padding: 14px 32px;
     border: none;
@@ -176,12 +179,22 @@ body {
     transform: none !important;
 }
 
-.join-section {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    border-radius: 8px;
 }
 
+.btn-danger {
+    border-color: #FF4757 !important;
+    color: #FF4757 !important;
+}
+
+.btn-danger:hover {
+    background: rgba(255, 71, 87, 0.2) !important;
+}
+
+/* ============ INPUTS ============ */
 .input-label {
     font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.7);
@@ -219,12 +232,45 @@ body {
     text-transform: none;
 }
 
-.footer-text {
-    margin-top: 30px;
-    color: rgba(255, 255, 255, 0.4);
-    font-size: 0.9rem;
+.input-field {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    font-size: 1rem;
+    font-family: 'Nunito', sans-serif;
+    transition: all var(--transition);
 }
 
+.input-field:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 20px rgba(108, 60, 225, 0.2);
+}
+
+.textarea-field {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    font-size: 1rem;
+    font-family: 'Nunito', sans-serif;
+    resize: vertical;
+    transition: all var(--transition);
+    min-height: 100px;
+}
+
+.textarea-field:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 20px rgba(108, 60, 225, 0.2);
+}
+
+/* ============ TELA DE CRIAÇÃO ============ */
 .create-container {
     max-width: 500px;
     width: 100%;
@@ -271,44 +317,13 @@ body {
     color: rgba(255, 255, 255, 0.8);
 }
 
-.input-field {
-    width: 100%;
-    padding: 12px 16px;
-    border-radius: 12px;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
-    font-size: 1rem;
-    font-family: 'Nunito', sans-serif;
-    transition: all var(--transition);
+.footer-text {
+    margin-top: 30px;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.9rem;
 }
 
-.input-field:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 20px rgba(108, 60, 225, 0.2);
-}
-
-.textarea-field {
-    width: 100%;
-    padding: 12px 16px;
-    border-radius: 12px;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
-    font-size: 1rem;
-    font-family: 'Nunito', sans-serif;
-    resize: vertical;
-    transition: all var(--transition);
-    min-height: 100px;
-}
-
-.textarea-field:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 20px rgba(108, 60, 225, 0.2);
-}
-
+/* ============ PERSONAGENS ============ */
 .character-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -367,6 +382,7 @@ body {
     background: rgba(108, 60, 225, 0.2);
 }
 
+/* ============ LOBBY ============ */
 .lobby-container {
     max-width: 700px;
     width: 100%;
@@ -456,6 +472,7 @@ body {
     font-size: 0.95rem;
 }
 
+/* ============ TELA DE ESPERA ============ */
 .waiting-container {
     text-align: center;
     padding: 60px;
@@ -491,6 +508,7 @@ body {
 .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
 .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
 
+/* ============ CARGOS ============ */
 .roles-container {
     max-width: 800px;
     width: 100%;
@@ -551,13 +569,18 @@ body {
     font-weight: 600;
 }
 
+.role-card.selected {
+    border-color: var(--primary);
+    background: rgba(108, 60, 225, 0.2);
+}
+
 .roles-status {
     text-align: center;
     color: rgba(255, 255, 255, 0.6);
     margin-top: 16px;
 }
 
-/* ========== TELA DO DIRETOR (NOVO) ========== */
+/* ============ DIRETOR ============ */
 .director-container {
     max-width: 600px;
     width: 100%;
@@ -597,23 +620,430 @@ body {
     text-align: center;
 }
 
-/* Tela de espera com filme */
-.waiting-detail .movie-title-highlight {
-    color: var(--accent);
+/* ============ ANIMADOR ============ */
+.animator-container {
+    max-width: 800px;
+    width: 100%;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-height: 95vh;
+    overflow-y: auto;
+}
+
+.animator-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.animator-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.animator-container::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 10px;
+}
+
+.animator-header {
+    margin-bottom: 16px;
+}
+
+.animator-header .screen-title {
+    margin-bottom: 12px;
+    font-size: 1.8rem;
+}
+
+.director-instructions {
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border-left: 4px solid var(--secondary);
+}
+
+.instruction-item {
+    margin: 4px 0;
+}
+
+.instruction-label {
     font-weight: 700;
+    color: rgba(255, 255, 255, 0.7);
+    margin-right: 8px;
+}
+
+.instruction-value {
+    color: var(--light);
+}
+
+.canvas-wrapper {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 12px 0;
+}
+
+#animationCanvas {
+    width: 100%;
+    height: auto;
     display: block;
+    background: white;
+    cursor: crosshair;
+}
+
+.canvas-tools {
+    display: flex;
+    gap: 6px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.tool-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    cursor: pointer;
+    transition: all var(--transition);
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tool-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.tool-btn.active {
+    border-color: var(--primary);
+    background: rgba(108, 60, 225, 0.2);
+}
+
+.tool-divider {
+    width: 1px;
+    height: 28px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+#colorPicker {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    background: none;
+    padding: 2px;
+}
+
+#brushSize {
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.8rem;
+}
+
+.frame-timeline {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin: 12px 0;
+    flex-wrap: wrap;
+}
+
+.frame-list {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex: 1;
+}
+
+.frame-thumb {
+    width: 56px;
+    height: 40px;
+    border-radius: 6px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all var(--transition);
+    background: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.frame-thumb:hover {
+    border-color: var(--primary);
+}
+
+.frame-thumb.active {
+    border-color: var(--primary);
+    box-shadow: 0 0 16px rgba(108, 60, 225, 0.3);
+}
+
+.frame-number {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 0.6rem;
+    color: rgba(0, 0, 0, 0.5);
+    background: rgba(255, 255, 255, 0.7);
+    padding: 0 4px;
+    border-radius: 3px;
+}
+
+.frame-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.animator-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 12px 0;
+}
+
+.animator-tip {
+    padding: 12px 16px;
+    background: rgba(255, 217, 61, 0.08);
+    border-radius: 10px;
+    border-left: 3px solid var(--accent);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+/* ============ ROTEIRISTA (CORRIGIDO COM SCROLL) ============ */
+.screenwriter-container {
+    max-width: 700px;
+    width: 100%;
+    max-height: 95vh;
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow-y: auto;
+    animation: slideUp 0.6s ease;
+}
+
+.screenwriter-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.screenwriter-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.screenwriter-container::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 10px;
+}
+
+.screenwriter-container::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
+
+.screenwriter-header {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.screenwriter-subtitle {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 1rem;
+    margin-top: -10px;
+}
+
+.animation-preview {
+    background: #0a0a1a;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.05);
+}
+
+.preview-wrapper {
+    background: #0a0a1a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 4px;
+}
+
+#previewCanvas {
+    width: 100%;
+    height: auto;
+    max-height: 300px;
+    display: block;
+    background: #0a0a1a;
+}
+
+.playback-controls {
+    display: flex;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.4);
+    align-items: center;
+    flex-wrap: wrap;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.playback-btn {
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    cursor: pointer;
+    transition: all var(--transition);
+    font-size: 0.9rem;
+    font-family: 'Nunito', sans-serif;
+}
+
+.playback-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--primary);
+}
+
+.playback-divider {
+    width: 1px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.playback-label {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-right: 4px;
+}
+
+.playback-controls input[type="range"] {
+    flex: 1;
+    min-width: 80px;
+    max-width: 150px;
+    accent-color: var(--primary);
+    height: 4px;
+    cursor: pointer;
+}
+
+.playback-fps {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 600;
+    min-width: 50px;
+}
+
+.preview-info {
+    padding: 6px 14px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.4);
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.script-area {
+    margin: 12px 0;
+}
+
+.script-area .form-group label {
+    font-size: 0.95rem;
+}
+
+.script-area .textarea-field {
+    min-height: 100px;
+    max-height: 180px;
+    resize: vertical;
+}
+
+.script-tip {
     margin-top: 8px;
-    font-size: 1.2rem;
+    padding: 10px 14px;
+    background: rgba(255, 217, 61, 0.08);
+    border-radius: 10px;
+    border-left: 3px solid var(--accent);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
 }
 
-.waiting-container .movie-title-display {
-    color: var(--accent);
-    font-weight: 700;
-    font-size: 1.4rem;
+.screenwriter-actions {
+    display: flex;
+    justify-content: center;
     margin-top: 10px;
-    font-family: 'Fredoka One', cursive;
+    padding-bottom: 8px;
 }
 
+.screenwriter-actions .btn-large {
+    width: 100%;
+    max-width: 400px;
+}
+
+/* ============ DUBLADOR ============ */
+.voice-container {
+    max-width: 600px;
+    width: 100%;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.script-display {
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border-left: 4px solid var(--accent);
+}
+
+.script-display h3 {
+    color: var(--accent);
+    margin-bottom: 8px;
+}
+
+.script-text {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    font-weight: 600;
+}
+
+.recording-area {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 20px 0;
+}
+
+.recording-status {
+    text-align: center;
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    margin-bottom: 16px;
+    font-weight: 600;
+}
+
+.recording-status.recording {
+    color: #FF4757;
+    background: rgba(255, 71, 87, 0.1);
+    animation: pulse 1s ease-in-out infinite;
+}
+
+/* ============ RESULTADO ============ */
 .result-container {
     max-width: 700px;
     width: 100%;
@@ -632,6 +1062,7 @@ body {
     margin-top: 20px;
 }
 
+/* ============ RESPONSIVIDADE ============ */
 @media (max-width: 768px) {
     .main-title {
         font-size: 2.2rem;
@@ -652,6 +1083,47 @@ body {
         flex-direction: column;
         gap: 12px;
     }
+    .screenwriter-container {
+        max-height: 98vh;
+        padding: 16px;
+        border-radius: 12px;
+    }
+    .playback-controls {
+        gap: 6px;
+        padding: 8px 10px;
+    }
+    .playback-btn {
+        padding: 4px 10px;
+        font-size: 0.8rem;
+    }
+    #previewCanvas {
+        max-height: 220px;
+    }
+    .script-area .textarea-field {
+        min-height: 80px;
+        max-height: 140px;
+    }
+    .screenwriter-actions .btn-large {
+        font-size: 1rem;
+        padding: 14px 24px;
+    }
+    .animator-container {
+        max-height: 98vh;
+        padding: 12px;
+    }
+    .canvas-tools {
+        gap: 4px;
+        padding: 8px;
+    }
+    .tool-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 0.85rem;
+    }
+    .frame-thumb {
+        width: 44px;
+        height: 32px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -669,10 +1141,58 @@ body {
     .create-container,
     .roles-container,
     .result-container,
-    .director-container {
-        padding: 20px;
+    .director-container,
+    .voice-container {
+        padding: 16px;
     }
     .home-container {
-        padding: 20px;
+        padding: 16px;
+    }
+    .screenwriter-container {
+        padding: 12px;
+        border-radius: 10px;
+    }
+    .playback-controls {
+        gap: 4px;
+        padding: 6px 8px;
+    }
+    .playback-btn {
+        padding: 3px 8px;
+        font-size: 0.7rem;
+    }
+    .playback-label {
+        font-size: 0.7rem;
+    }
+    .playback-fps {
+        font-size: 0.7rem;
+        min-width: 40px;
+    }
+    #previewCanvas {
+        max-height: 160px;
+    }
+    .script-area .textarea-field {
+        min-height: 60px;
+        max-height: 100px;
+        font-size: 0.9rem;
+    }
+    .animator-container {
+        padding: 8px;
+    }
+    .canvas-tools {
+        gap: 3px;
+        padding: 6px;
+    }
+    .tool-btn {
+        width: 26px;
+        height: 26px;
+        font-size: 0.75rem;
+    }
+    .frame-thumb {
+        width: 36px;
+        height: 28px;
+    }
+    .frame-actions .btn-sm {
+        font-size: 0.7rem;
+        padding: 4px 10px;
     }
 }
