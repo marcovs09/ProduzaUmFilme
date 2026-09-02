@@ -137,6 +137,36 @@
             </div>
         </div>
 
+        <!-- ============ TELA DO DIRETOR (NOVO) ============ -->
+        <div id="directorScreen" class="screen">
+            <div class="director-container">
+                <div class="director-header">
+                    <h2 class="screen-title">🎬 DIREÇÃO</h2>
+                    <p class="director-subtitle">Crie a ideia da cena!</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="movieTitle">🎞️ Nome do Filme</label>
+                    <input type="text" id="movieTitle" class="input-field" placeholder="Ex: A Fuga do Castelo" maxlength="50" />
+                </div>
+
+                <div class="form-group">
+                    <label for="movieDescription">📝 Descrição da Animação</label>
+                    <textarea id="movieDescription" class="textarea-field" rows="6" placeholder="Descreva o que o Animador deve criar... Exemplo: Um cavaleiro entra no castelo, encontra um dragão e foge desesperadamente."></textarea>
+                </div>
+
+                <div class="director-actions">
+                    <button id="submitDirectorBtn" class="btn btn-primary btn-large">
+                        🎬 ENVIAR PARA O ANIMADOR
+                    </button>
+                </div>
+
+                <div class="director-tip">
+                    💡 Dica: Seja criativo! O Animador vai interpretar sua ideia.
+                </div>
+            </div>
+        </div>
+
         <!-- TELA DE RESULTADO (simplificada) -->
         <div id="resultScreen" class="screen">
             <div class="result-container">
