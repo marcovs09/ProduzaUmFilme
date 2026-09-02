@@ -137,7 +137,7 @@
             </div>
         </div>
 
-        <!-- ============ TELA DO DIRETOR ============ -->
+        <!-- TELA DO DIRETOR -->
         <div id="directorScreen" class="screen">
             <div class="director-container">
                 <div class="director-header">
@@ -167,7 +167,7 @@
             </div>
         </div>
 
-        <!-- ============ TELA DO ANIMADOR (NOVO) ============ -->
+        <!-- TELA DO ANIMADOR -->
         <div id="animatorScreen" class="screen">
             <div class="animator-container">
                 <div class="animator-header">
@@ -226,6 +226,75 @@
                 <div class="animator-tip">
                     💡 Dica: Desenhe quadro a quadro! Use a pré-visualização para ver sua animação em ação.
                 </div>
+            </div>
+        </div>
+
+        <!-- ============ TELA DO ROTEIRISTA (NOVO) ============ -->
+        <div id="screenwriterScreen" class="screen">
+            <div class="screenwriter-container">
+                <div class="screenwriter-header">
+                    <h2 class="screen-title">📝 ROTEIRISTA</h2>
+                    <p class="screenwriter-subtitle">Assista à animação e escreva as falas!</p>
+                </div>
+
+                <div class="animation-preview">
+                    <div class="preview-wrapper">
+                        <canvas id="previewCanvas" width="600" height="400"></canvas>
+                    </div>
+                    <div class="playback-controls">
+                        <button id="playBtn" class="playback-btn" title="Reproduzir">▶️</button>
+                        <button id="pauseBtn" class="playback-btn" title="Pausar">⏸️</button>
+                        <button id="restartBtn" class="playback-btn" title="Reiniciar">🔄</button>
+                        <span class="playback-divider"></span>
+                        <label for="fpsSlider" class="playback-label">Velocidade:</label>
+                        <input type="range" id="fpsSlider" min="2" max="12" value="6" />
+                        <span id="fpsValue" class="playback-fps">6 FPS</span>
+                    </div>
+                    <div class="preview-info">
+                        <span id="frameCounter">Quadro 0 / 0</span>
+                    </div>
+                </div>
+
+                <div class="script-area">
+                    <div class="form-group">
+                        <label for="scriptText">📝 ROTEIRO DE DUBLAGEM</label>
+                        <textarea id="scriptText" class="textarea-field" rows="6" placeholder="Escreva as falas dos personagens...&#10;&#10;Exemplo:&#10;Personagem 1: &quot;Corre! Ele está vindo!&quot;&#10;Personagem 2: &quot;Não vou deixar você escapar!&quot;"></textarea>
+                    </div>
+                    <div class="script-tip">
+                        💡 Dica: Escreva as falas como se fossem diálogos de filme! Use "Personagem: Fala"
+                    </div>
+                </div>
+
+                <div class="screenwriter-actions">
+                    <button id="submitScriptBtn" class="btn btn-primary btn-large">
+                        📝 ENVIAR ROTEIRO
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TELA DO DUBLADOR (placeholder) -->
+        <div id="voiceActorScreen" class="screen">
+            <div class="voice-container">
+                <h2 class="screen-title">🎙️ DUBLAGEM</h2>
+                <div class="script-display">
+                    <h3>📝 ROTEIRO</h3>
+                    <div id="scriptDisplay" class="script-text">
+                        Aguardando roteiro...
+                    </div>
+                </div>
+                <div class="recording-area">
+                    <button id="recordBtn" class="btn btn-primary btn-large" disabled>🔴 GRAVAR</button>
+                    <button id="stopBtn" class="btn btn-secondary" disabled>⏹ PARAR</button>
+                    <button id="playbackBtn" class="btn btn-secondary" disabled>▶️ OUVIR</button>
+                    <button id="retryBtn" class="btn btn-secondary" disabled>🔄 GRAVAR NOVAMENTE</button>
+                </div>
+                <div id="recordingStatus" class="recording-status">
+                    Aguardando roteiro do Roteirista...
+                </div>
+                <button id="finishVoiceBtn" class="btn btn-primary btn-large" disabled>
+                    🎬 FINALIZAR DUBLAGEM
+                </button>
             </div>
         </div>
 
