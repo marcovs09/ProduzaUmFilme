@@ -1,0 +1,600 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary: #6C3CE1;
+    --primary-dark: #5A2DC9;
+    --secondary: #FF6B9D;
+    --accent: #FFD93D;
+    --dark: #1A1A2E;
+    --dark-secondary: #16213E;
+    --light: #FFFFFF;
+    --radius: 16px;
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+    font-family: 'Nunito', sans-serif;
+    background: linear-gradient(135deg, var(--dark) 0%, var(--dark-secondary) 100%);
+    color: var(--light);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+#app {
+    width: 100%;
+    max-width: 1200px;
+    height: 100vh;
+    max-height: 900px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.screen {
+    display: none;
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+    animation: fadeIn 0.5s ease;
+}
+
+.screen.active {
+    display: flex;
+}
+
+.home-container {
+    text-align: center;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    max-width: 600px;
+    width: 100%;
+    position: relative;
+}
+
+.decorative-elements {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.decorative-elements div {
+    position: absolute;
+    font-size: 2rem;
+    opacity: 0.2;
+    animation: float 6s ease-in-out infinite;
+}
+
+.decorative-elements .clapper { top: 10%; left: 5%; animation-delay: 0s; font-size: 3rem; }
+.decorative-elements .film-roll { bottom: 10%; right: 5%; animation-delay: 1s; font-size: 3rem; }
+.decorative-elements .star { top: 20%; right: 10%; animation-delay: 2s; }
+.decorative-elements .microphone { bottom: 20%; left: 8%; animation-delay: 3s; }
+.decorative-elements .pencil { top: 50%; left: 2%; animation-delay: 4s; }
+
+.logo-container {
+    margin-bottom: 40px;
+    position: relative;
+    z-index: 1;
+}
+
+.main-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 3.5rem;
+    background: linear-gradient(135deg, var(--secondary), var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 60px rgba(108, 60, 225, 0.3);
+    letter-spacing: 2px;
+    line-height: 1.2;
+}
+
+.title-icon {
+    -webkit-text-fill-color: initial;
+    display: inline-block;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 8px;
+    font-weight: 600;
+}
+
+.menu-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: relative;
+    z-index: 1;
+}
+
+.btn {
+    padding: 14px 32px;
+    border: none;
+    border-radius: 50px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all var(--transition);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    box-shadow: 0 4px 15px rgba(108, 60, 225, 0.4);
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(108, 60, 225, 0.5);
+}
+
+.btn-primary:active {
+    transform: scale(0.97);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.btn-large {
+    padding: 18px 48px;
+    font-size: 1.2rem;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+.join-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.input-label {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 600;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+}
+
+.input-code {
+    flex: 1;
+    padding: 14px 20px;
+    border-radius: 50px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    font-size: 1.1rem;
+    font-family: 'Nunito', sans-serif;
+    transition: all var(--transition);
+    text-transform: uppercase;
+    text-align: center;
+    letter-spacing: 3px;
+}
+
+.input-code:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 20px rgba(108, 60, 225, 0.2);
+}
+
+.input-code::placeholder {
+    letter-spacing: 1px;
+    text-transform: none;
+}
+
+.footer-text {
+    margin-top: 30px;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.9rem;
+}
+
+.create-container {
+    max-width: 500px;
+    width: 100%;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-back {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    transition: all var(--transition);
+    margin-bottom: 20px;
+}
+
+.btn-back:hover {
+    color: white;
+}
+
+.screen-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, var(--secondary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.input-field {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    font-size: 1rem;
+    font-family: 'Nunito', sans-serif;
+    transition: all var(--transition);
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 20px rgba(108, 60, 225, 0.2);
+}
+
+.character-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.character-option {
+    padding: 12px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    transition: all var(--transition);
+    text-align: center;
+    font-size: 1.5rem;
+}
+
+.character-option:hover {
+    border-color: var(--primary);
+    transform: scale(1.05);
+}
+
+.character-option.selected {
+    border-color: var(--primary);
+    background: rgba(108, 60, 225, 0.2);
+    box-shadow: 0 0 20px rgba(108, 60, 225, 0.2);
+}
+
+.player-count-options {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.count-option {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    cursor: pointer;
+    transition: all var(--transition);
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.count-option:hover {
+    border-color: var(--primary);
+}
+
+.count-option.selected {
+    border-color: var(--primary);
+    background: rgba(108, 60, 225, 0.2);
+}
+
+.lobby-container {
+    max-width: 700px;
+    width: 100%;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.lobby-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.lobby-header h2 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.8rem;
+}
+
+.btn-copy {
+    padding: 8px 16px;
+    border-radius: 50px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    cursor: pointer;
+    transition: all var(--transition);
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.btn-copy:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.players-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 30px;
+}
+
+.player-card {
+    padding: 20px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.05);
+    text-align: center;
+    transition: all var(--transition);
+}
+
+.player-card .avatar {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.player-card .name {
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.player-card .status {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.player-card.empty {
+    opacity: 0.4;
+    border-style: dashed;
+}
+
+.lobby-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+}
+
+.lobby-status {
+    text-align: center;
+    margin-top: 20px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.95rem;
+}
+
+.waiting-container {
+    text-align: center;
+    padding: 60px;
+}
+
+.emoji-large {
+    font-size: 5rem;
+    display: block;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.waiting-container h2 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    margin: 20px 0 10px;
+}
+
+.waiting-detail {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 1.1rem;
+}
+
+.loading-dots {
+    margin-top: 20px;
+}
+
+.loading-dots span {
+    display: inline-block;
+    font-size: 2rem;
+    animation: dotPulse 1.4s ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+.roles-container {
+    max-width: 800px;
+    width: 100%;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.roles-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin: 20px 0;
+}
+
+.role-card {
+    padding: 20px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all var(--transition);
+    text-align: center;
+}
+
+.role-card:hover:not(.taken) {
+    transform: translateY(-4px);
+    border-color: var(--primary);
+}
+
+.role-card .role-icon {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.role-card .role-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.role-card .role-desc {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 4px;
+}
+
+.role-card.taken {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.role-card .taken-by {
+    font-size: 0.8rem;
+    color: var(--secondary);
+    font-weight: 600;
+}
+
+.roles-status {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 16px;
+}
+
+.result-container {
+    max-width: 700px;
+    width: 100%;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.result-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+    .main-title {
+        font-size: 2.2rem;
+    }
+    .players-grid {
+        grid-template-columns: 1fr;
+    }
+    .roles-grid {
+        grid-template-columns: 1fr;
+    }
+    .character-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .input-group {
+        flex-direction: column;
+    }
+    .lobby-header {
+        flex-direction: column;
+        gap: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-title {
+        font-size: 1.8rem;
+    }
+    .btn-large {
+        padding: 14px 24px;
+        font-size: 1rem;
+    }
+    .screen-title {
+        font-size: 1.5rem;
+    }
+    .lobby-container,
+    .create-container,
+    .roles-container,
+    .result-container {
+        padding: 20px;
+    }
+    .home-container {
+        padding: 20px;
+    }
+}
