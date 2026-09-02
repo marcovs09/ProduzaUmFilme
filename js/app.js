@@ -315,7 +315,7 @@ function createRoom() {
     });
 }
 
-// ============ LOBBY ============
+// ============ LOBBY (VERSÃO CORRIGIDA) ============
 function listenRoomChanges() {
     const roomRef = db.ref('rooms/' + GameState.roomId);
     roomRef.on('value', snapshot => {
@@ -342,74 +342,107 @@ function listenRoomChanges() {
             updateLobby();
         }
         
-        // ============ TRANSIÇÃO PARA SELEÇÃO DE CARGOS ============
-        if (data.status === 'roles' && GameState.currentScreen !== 'roleSelectionScreen') {
-            showScreen('roleSelectionScreen');
-            setupRoles(data);
-        }
+        // ============================================================
+        // GERENCIAMENTO DE TELAS - VERSÃO CORRIGIDA
+        // ============================================================
         
-        if (data.status === 'roles' && GameState.currentScreen === 'roleSelectionScreen') {
-            setupRoles(data);
-        }
-        
-        // ============ TELA DO DIRETOR ============
-        if (data.step === 'director') {
-            if (GameState.role === 'director') {
-                showScreen('directorScreen');
-                loadDirectorData(data);
-            } else if (GameState.currentScreen !== 'waitingScreen') {
-                showWaiting('🎬 O Diretor está escrevendo a cena...', 'Aguardando o Diretor finalizar', '🎬');
+        // 1. TELA DE SELEÇÃO DE CARGOS
+        if (data.status === 'roles') {
+            if (GameState.currentScreen !== 'roleSelectionScreen') {
+                showScreen('roleSelectionScreen');
+                setupRoles(data);
+            } else {
+                setupRoles(data);
             }
+            return;
         }
         
-        // ============ TELA DO ANIMADOR ============
-        if (data.step === 'animator') {
-            if (GameState.role === 'animator') {
-                showScreen('animatorScreen');
-                loadAnimatorData(data);
-            } else if (GameState.currentScreen !== 'waitingScreen') {
-                const title = data.gameData?.directorTitle || '';
-                showWaitingWithMovie(
-                    '🎨 O Animador está criando a animação...',
-                    'Aguardando o Animador finalizar',
-                    '🎨',
-                    title
-                );
+        // 2. JOGO EM ANDAMENTO
+        if (data.status === 'playing') {
+            const currentStep = data.step;
+            const playerRole = GameState.role;
+            const playerCount = GameState.maxPlayers;
+            
+            // --- ETAPA DO DIRETOR ---
+            if (currentStep === 'director') {
+                if (playerRole === 'director') {
+                    showScreen('directorScreen');
+                    loadDirectorData(data);
+                } else {
+                    if (GameState.currentScreen !== 'waitingScreen') {
+                        showWaiting('🎬 O Diretor está escrevendo a cena...', 'Aguardando o Diretor finalizar', '🎬');
+                    }
+                }
+                return;
             }
-        }
-        
-        // ============ TELA DO ROTEIRISTA (APENAS MODO 4) ============
-        if (data.step === 'screenwriter') {
-            if (GameState.role === 'screenwriter') {
-                showScreen('screenwriterScreen');
-            } else if (GameState.currentScreen !== 'waitingScreen') {
-                const title = data.gameData?.directorTitle || '';
-                showWaitingWithMovie(
-                    '📝 O Roteirista está escrevendo...',
-                    'Aguardando o Roteirista finalizar',
-                    '📝',
-                    title
-                );
+            
+            // --- ETAPA DO ANIMADOR ---
+            if (currentStep === 'animator') {
+                if (playerRole === 'animator') {
+                    showScreen('animatorScreen');
+                    loadAnimatorData(data);
+                } else {
+                    if (GameState.currentScreen !== 'waitingScreen') {
+                        const title = data.gameData?.directorTitle || '';
+                        showWaitingWithMovie(
+                            '🎨 O Animador está criando a animação...',
+                            'Aguardando o Animador finalizar',
+                            '🎨',
+                            title
+                        );
+                    }
+                }
+                return;
             }
-        }
-        
-        // ============ TELA DO DUBLADOR ============
-        if (data.step === 'voice-actor') {
-            if (GameState.role === 'voice-actor') {
-                showScreen('voiceActorScreen');
-            } else if (GameState.currentScreen !== 'waitingScreen') {
-                const title = data.gameData?.directorTitle || '';
-                showWaitingWithMovie(
-                    '🎙️ O Dublador está gravando...',
-                    'Aguardando o Dublador finalizar',
-                    '🎙️',
-                    title
-                );
+            
+            // --- ETAPA DO ROTEIRISTA (APENAS MODO 4) ---
+            if (currentStep === 'screenwriter') {
+                if (playerCount !== 4) {
+                    console.warn('⚠️ Modo sem Roteirista, mas step=screenwriter. Corrigindo...');
+                    const roomRefUpdate = db.ref('rooms/' + GameState.roomId);
+                    roomRefUpdate.update({ step: 'voice-actor' });
+                    return;
+                }
+                
+                if (playerRole === 'screenwriter') {
+                    showScreen('screenwriterScreen');
+                } else {
+                    if (GameState.currentScreen !== 'waitingScreen') {
+                        const title = data.gameData?.directorTitle || '';
+                        showWaitingWithMovie(
+                            '📝 O Roteirista está escrevendo...',
+                            'Aguardando o Roteirista finalizar',
+                            '📝',
+                            title
+                        );
+                    }
+                }
+                return;
             }
-        }
-        
-        if (data.step === 'result') {
-            showScreen('resultScreen');
+            
+            // --- ETAPA DO DUBLADOR ---
+            if (currentStep === 'voice-actor') {
+                if (playerRole === 'voice-actor') {
+                    showScreen('voiceActorScreen');
+                } else {
+                    if (GameState.currentScreen !== 'waitingScreen') {
+                        const title = data.gameData?.directorTitle || '';
+                        showWaitingWithMovie(
+                            '🎙️ O Dublador está gravando...',
+                            'Aguardando o Dublador finalizar',
+                            '🎙️',
+                            title
+                        );
+                    }
+                }
+                return;
+            }
+            
+            // --- RESULTADO FINAL ---
+            if (currentStep === 'result') {
+                showScreen('resultScreen');
+                return;
+            }
         }
     });
 }
@@ -709,7 +742,6 @@ function loadDirectorData(data) {
 }
 
 // ============ ANIMADOR ============
-
 let animatorFrames = [];
 let currentFrameIndex = 0;
 let isDrawing = false;
@@ -1056,20 +1088,15 @@ function finishAnimation() {
     }
     
     const roomRef = db.ref('rooms/' + GameState.roomId);
-    
-    // CORREÇÃO: Define a próxima etapa baseada no número de jogadores
-    let nextStep;
     const playerCount = GameState.maxPlayers;
     
-    if (playerCount === 2) {
-        // Modo 2: Animador → Dublador
-        nextStep = 'voice-actor';
-    } else if (playerCount === 3) {
-        // Modo 3: Animador → Dublador (pula Roteirista)
-        nextStep = 'voice-actor';
-    } else {
-        // Modo 4: Animador → Roteirista
+    // Define a próxima etapa baseada no número de jogadores
+    let nextStep;
+    if (playerCount === 4) {
         nextStep = 'screenwriter';
+    } else {
+        // Modo 2 ou 3: vai direto para o Dublador
+        nextStep = 'voice-actor';
     }
     
     console.log('🔀 Próxima etapa:', nextStep, 'para', playerCount, 'jogadores');
