@@ -177,11 +177,10 @@ function showJoinModal(roomCode) {
     });
 }
 
-// ============ ENTRAR NA SALA (CORRIGIDO) ============
+// ============ ENTRAR NA SALA ============
 function executeJoinRoom(code, name, character) {
     const roomRef = db.ref('rooms/' + code);
     
-    // 🔧 VERIFICAÇÃO: Limpa jogadores fantasmas
     roomRef.once('value').then(snapshot => {
         if (!snapshot.exists()) {
             alert('Sala não encontrada!');
@@ -191,28 +190,23 @@ function executeJoinRoom(code, name, character) {
         const data = snapshot.val();
         const players = data.players || {};
         const playerIds = Object.keys(players);
-        const maxPlayers = data.maxPlayers || 4;
         
-        // Verifica se há jogadores "fantasmas" (desconectados)
         const now = Date.now();
-        const maxInactiveTime = 30000; // 30 segundos
+        const maxInactiveTime = 30000;
         let hasGhosts = false;
         
         playerIds.forEach(id => {
             const player = players[id];
             if (player && player.joinedAt) {
                 const inactiveTime = now - player.joinedAt;
-                // Se o jogador está inativo há mais de 30 segundos e não é o host
                 if (inactiveTime > maxInactiveTime && !player.isHost) {
                     hasGhosts = true;
-                    // Remove o jogador fantasma
                     roomRef.child('players/' + id).remove();
                     console.log('🧹 Jogador fantasma removido:', id);
                 }
             }
         });
         
-        // Se removeu fantasmas, espera um momento e recarrega
         if (hasGhosts) {
             setTimeout(() => {
                 executeJoinRoom(code, name, character);
@@ -220,7 +214,6 @@ function executeJoinRoom(code, name, character) {
             return;
         }
         
-        // CONTINUAÇÃO DO CÓDIGO ORIGINAL
         const playerCount = Object.keys(data.players || {}).length;
         if (playerCount >= data.maxPlayers) {
             alert('Sala cheia!');
@@ -377,10 +370,6 @@ function listenRoomChanges() {
         const playerCount = GameState.maxPlayers;
         const movieTitle = data.gameData?.directorTitle || '';
         
-        // ============================================================
-        // GERENCIAMENTO DE TELAS
-        // ============================================================
-        
         if (data.status === 'roles') {
             if (GameState.currentScreen !== 'roleSelectionScreen') {
                 showScreen('roleSelectionScreen');
@@ -393,41 +382,28 @@ function listenRoomChanges() {
         }
         
         if (data.status === 'playing') {
-            // --- ETAPA DO DIRETOR ---
             if (currentStep === 'director') {
                 if (playerRole === 'director') {
                     showScreen('directorScreen');
                     loadDirectorData(data);
                 } else {
-                    showWaiting(
-                        '🎬 O Diretor está escrevendo a cena...',
-                        'Aguardando o Diretor finalizar',
-                        '🎬',
-                        movieTitle
-                    );
+                    showWaiting('🎬 O Diretor está escrevendo a cena...', 'Aguardando o Diretor finalizar', '🎬', movieTitle);
                 }
                 GameState.lastStep = currentStep;
                 return;
             }
             
-            // --- ETAPA DO ANIMADOR ---
             if (currentStep === 'animator') {
                 if (playerRole === 'animator') {
                     showScreen('animatorScreen');
                     loadAnimatorData(data);
                 } else {
-                    showWaiting(
-                        '🎨 O Animador está criando a animação...',
-                        'Aguardando o Animador finalizar',
-                        '🎨',
-                        movieTitle
-                    );
+                    showWaiting('🎨 O Animador está criando a animação...', 'Aguardando o Animador finalizar', '🎨', movieTitle);
                 }
                 GameState.lastStep = currentStep;
                 return;
             }
             
-            // --- ETAPA DO ROTEIRISTA ---
             if (currentStep === 'screenwriter') {
                 if (playerCount !== 4) {
                     const roomRefUpdate = db.ref('rooms/' + GameState.roomId);
@@ -440,37 +416,26 @@ function listenRoomChanges() {
                     showScreen('screenwriterScreen');
                     loadScreenwriterData(data);
                 } else {
-                    showWaiting(
-                        '📝 O Roteirista está escrevendo...',
-                        'Aguardando o Roteirista finalizar',
-                        '📝',
-                        movieTitle
-                    );
+                    showWaiting('📝 O Roteirista está escrevendo...', 'Aguardando o Roteirista finalizar', '📝', movieTitle);
                 }
                 GameState.lastStep = currentStep;
                 return;
             }
             
-            // --- ETAPA DO DUBLADOR ---
             if (currentStep === 'voice-actor') {
                 if (playerRole === 'voice-actor') {
                     showScreen('voiceActorScreen');
                     loadVoiceActorData(data);
                 } else {
-                    showWaiting(
-                        '🎙️ O Dublador está gravando...',
-                        'Aguardando o Dublador finalizar',
-                        '🎙️',
-                        movieTitle
-                    );
+                    showWaiting('🎙️ O Dublador está gravando...', 'Aguardando o Dublador finalizar', '🎙️', movieTitle);
                 }
                 GameState.lastStep = currentStep;
                 return;
             }
             
-            // --- RESULTADO ---
             if (currentStep === 'result') {
                 showScreen('resultScreen');
+                loadResultData(data);
                 GameState.lastStep = currentStep;
                 return;
             }
@@ -540,22 +505,16 @@ document.getElementById('copyCodeBtn').addEventListener('click', () => {
 
 document.getElementById('leaveLobbyBtn').addEventListener('click', leaveRoom);
 
-// ============ SAIR DA SALA (CORRIGIDO) ============
 function leaveRoom() {
     if (GameState.roomId && GameState.playerId) {
         const roomRef = db.ref('rooms/' + GameState.roomId);
-        
-        // Remove o jogador da sala
         const playerRef = roomRef.child('players/' + GameState.playerId);
         playerRef.remove().then(() => {
-            // Verifica se ainda há jogadores na sala
             roomRef.once('value').then(snapshot => {
                 if (snapshot.exists()) {
                     const data = snapshot.val();
                     const players = data.players || {};
                     const playerCount = Object.keys(players).length;
-                    
-                    // Se não houver mais jogadores, remove a sala
                     if (playerCount === 0) {
                         roomRef.remove().catch(err => {
                             console.error('Erro ao remover sala:', err);
@@ -568,7 +527,6 @@ function leaveRoom() {
         });
     }
     
-    // Limpa o estado do jogador
     GameState.roomId = null;
     GameState.playerId = null;
     GameState.isHost = false;
@@ -780,12 +738,7 @@ document.getElementById('submitDirectorBtn').addEventListener('click', () => {
         'gameData/directorDescription': description,
         step: 'animator'
     }).then(() => {
-        showWaiting(
-            '🎬 Filme enviado para o Animador!',
-            'Aguardando o Animador criar a cena',
-            '🎨',
-            title
-        );
+        showWaiting('🎬 Filme enviado para o Animador!', 'Aguardando o Animador criar a cena', '🎨', title);
     }).catch(err => {
         console.error('Erro ao enviar filme:', err);
         alert('Erro ao enviar. Tente novamente.');
@@ -1170,12 +1123,7 @@ function finishAnimation() {
             waitingEmoji = '🎙️';
         }
         
-        showWaiting(
-            waitingMsg,
-            'Aguardando a próxima etapa',
-            waitingEmoji,
-            document.getElementById('animatorMovieTitle').textContent
-        );
+        showWaiting(waitingMsg, 'Aguardando a próxima etapa', waitingEmoji, document.getElementById('animatorMovieTitle').textContent);
     }).catch(err => {
         console.error('Erro ao finalizar animação:', err);
         alert('Erro ao finalizar. Tente novamente.');
@@ -1183,7 +1131,6 @@ function finishAnimation() {
 }
 
 // ============ ROTEIRISTA ============
-
 let previewFrames = [];
 let isPreviewPlaying = false;
 let previewIntervalId = null;
@@ -1339,12 +1286,7 @@ function submitScript() {
             pausePreview();
         }
         
-        showWaiting(
-            '🎙️ O Dublador está gravando...',
-            'Aguardando o Dublador finalizar',
-            '🎙️',
-            document.getElementById('animatorMovieTitle')?.textContent || ''
-        );
+        showWaiting('🎙️ O Dublador está gravando...', 'Aguardando o Dublador finalizar', '🎙️', document.getElementById('animatorMovieTitle')?.textContent || '');
     }).catch(err => {
         console.error('Erro ao enviar roteiro:', err);
         alert('Erro ao enviar roteiro. Tente novamente.');
@@ -1352,6 +1294,12 @@ function submitScript() {
 }
 
 // ============ DUBLADOR ============
+
+let mediaRecorder = null;
+let audioChunks = [];
+let recordedAudio = null;
+let isRecording = false;
+
 function loadVoiceActorData(data) {
     console.log('🔄 Dublador carregado com dados:', data);
     
@@ -1359,7 +1307,283 @@ function loadVoiceActorData(data) {
         document.getElementById('scriptDisplay').textContent = data.gameData.script;
         document.getElementById('recordingStatus').textContent = '🎙️ Pronto para gravar!';
         document.getElementById('recordBtn').disabled = false;
+        document.getElementById('recordBtn').textContent = '🔴 GRAVAR';
     }
+    
+    // Configurar eventos
+    document.getElementById('recordBtn').addEventListener('click', startRecording);
+    document.getElementById('stopBtn').addEventListener('click', stopRecording);
+    document.getElementById('playbackBtn').addEventListener('click', playRecordedAudio);
+    document.getElementById('retryBtn').addEventListener('click', resetRecording);
+    document.getElementById('finishVoiceBtn').addEventListener('click', finishVoice);
+}
+
+async function startRecording() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        
+        mediaRecorder.ondataavailable = (event) => {
+            audioChunks.push(event.data);
+        };
+        
+        mediaRecorder.onstop = () => {
+            recordedAudio = new Blob(audioChunks, { type: 'audio/wav' });
+            document.getElementById('playbackBtn').disabled = false;
+            document.getElementById('finishVoiceBtn').disabled = false;
+            document.getElementById('recordingStatus').textContent = '✅ Gravação concluída!';
+            document.getElementById('recordingStatus').className = 'recording-status';
+            document.getElementById('recordBtn').textContent = '🔴 GRAVAR';
+        };
+        
+        mediaRecorder.start();
+        isRecording = true;
+        document.getElementById('recordBtn').disabled = true;
+        document.getElementById('stopBtn').disabled = false;
+        document.getElementById('recordingStatus').textContent = '🔴 Gravando...';
+        document.getElementById('recordingStatus').className = 'recording-status recording';
+        document.getElementById('recordBtn').textContent = '⏳ GRAVANDO...';
+        
+    } catch (err) {
+        console.error('Erro ao acessar microfone:', err);
+        alert('Não foi possível acessar o microfone. Verifique as permissões do navegador.');
+    }
+}
+
+function stopRecording() {
+    if (mediaRecorder && isRecording) {
+        mediaRecorder.stop();
+        isRecording = false;
+        document.getElementById('recordBtn').disabled = false;
+        document.getElementById('stopBtn').disabled = true;
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        document.getElementById('recordBtn').textContent = '🔴 REGRAVAR';
+    }
+}
+
+function playRecordedAudio() {
+    if (recordedAudio) {
+        const audio = new Audio(URL.createObjectURL(recordedAudio));
+        audio.play();
+        document.getElementById('recordingStatus').textContent = '▶️ Reproduzindo...';
+        audio.onended = () => {
+            document.getElementById('recordingStatus').textContent = '✅ Gravação concluída!';
+        };
+    }
+}
+
+function resetRecording() {
+    recordedAudio = null;
+    audioChunks = [];
+    document.getElementById('playbackBtn').disabled = true;
+    document.getElementById('finishVoiceBtn').disabled = true;
+    document.getElementById('recordingStatus').textContent = '🎙️ Pronto para gravar!';
+    document.getElementById('recordingStatus').className = 'recording-status';
+    document.getElementById('recordBtn').textContent = '🔴 GRAVAR';
+    document.getElementById('recordBtn').disabled = false;
+}
+
+function finishVoice() {
+    if (!recordedAudio) {
+        alert('Grave o áudio primeiro!');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = () => {
+        const audioData = reader.result;
+        const roomRef = db.ref('rooms/' + GameState.roomId);
+        roomRef.update({
+            'gameData/audio': audioData,
+            step: 'result'
+        }).then(() => {
+            showWaiting('🎬 Filme sendo finalizado...', 'Preparando o resultado final', '🎬');
+        }).catch(err => {
+            console.error('Erro ao enviar áudio:', err);
+            alert('Erro ao enviar áudio. Tente novamente.');
+        });
+    };
+    reader.readAsDataURL(recordedAudio);
+}
+
+// ============ RESULTADO FINAL ============
+
+let resultMovieTitle = '';
+let resultFrames = [];
+let resultAudio = null;
+let resultInterval = null;
+let isMoviePlaying = false;
+let currentMovieFrame = 0;
+
+function loadResultData(data) {
+    console.log('🔄 Resultado carregado com dados:', data);
+    
+    if (data.gameData) {
+        resultMovieTitle = data.gameData.directorTitle || 'Filme sem título';
+        resultFrames = data.gameData.frames || [];
+        
+        if (data.gameData.audio) {
+            const audioData = data.gameData.audio.split(',')[1];
+            if (audioData) {
+                const byteCharacters = atob(audioData);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                resultAudio = new Blob([byteArray], { type: 'audio/wav' });
+            }
+        }
+    }
+    
+    document.getElementById('resultMovieTitle').textContent = `🎞️ "${resultMovieTitle}"`;
+    
+    setupResultCanvas();
+    
+    document.getElementById('playMovieBtn').addEventListener('click', playMovie);
+    document.getElementById('pauseMovieBtn').addEventListener('click', pauseMovie);
+    document.getElementById('restartMovieBtn').addEventListener('click', restartMovie);
+    document.getElementById('downloadBtn').addEventListener('click', downloadMovie);
+    document.getElementById('playAgainBtn').addEventListener('click', playAgain);
+    document.getElementById('exitResultBtn').addEventListener('click', exitResult);
+}
+
+function setupResultCanvas() {
+    const canvas = document.getElementById('resultCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 600;
+    canvas.height = 400;
+    
+    if (resultFrames.length > 0 && resultFrames[0]) {
+        const img = new Image();
+        img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+        };
+        img.src = resultFrames[0];
+    } else {
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.font = '20px Nunito, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🎬 Aguardando filme...', canvas.width/2, canvas.height/2);
+    }
+}
+
+function playMovie() {
+    if (resultFrames.length === 0) {
+        alert('Ainda não há filme para assistir!');
+        return;
+    }
+    
+    if (isMoviePlaying) return;
+    
+    isMoviePlaying = true;
+    const canvas = document.getElementById('resultCanvas');
+    const ctx = canvas.getContext('2d');
+    const delay = 200;
+    
+    if (currentMovieFrame >= resultFrames.length) {
+        currentMovieFrame = 0;
+    }
+    
+    let audioElement = null;
+    if (resultAudio) {
+        audioElement = new Audio(URL.createObjectURL(resultAudio));
+        audioElement.play();
+        audioElement.onended = () => {
+            pauseMovie();
+        };
+    }
+    
+    resultInterval = setInterval(() => {
+        if (currentMovieFrame >= resultFrames.length) {
+            currentMovieFrame = 0;
+            if (audioElement) {
+                audioElement.currentTime = 0;
+                audioElement.play();
+            }
+        }
+        
+        const frame = resultFrames[currentMovieFrame];
+        if (frame) {
+            const img = new Image();
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+            };
+            img.src = frame;
+        }
+        currentMovieFrame++;
+    }, delay);
+}
+
+function pauseMovie() {
+    isMoviePlaying = false;
+    if (resultInterval) {
+        clearInterval(resultInterval);
+        resultInterval = null;
+    }
+}
+
+function restartMovie() {
+    pauseMovie();
+    currentMovieFrame = 0;
+    const canvas = document.getElementById('resultCanvas');
+    const ctx = canvas.getContext('2d');
+    if (resultFrames.length > 0 && resultFrames[0]) {
+        const img = new Image();
+        img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0);
+        };
+        img.src = resultFrames[0];
+    }
+}
+
+function downloadMovie() {
+    alert('⬇️ Função de download será implementada em breve!');
+}
+
+function playAgain() {
+    if (resultInterval) {
+        clearInterval(resultInterval);
+        resultInterval = null;
+    }
+    isMoviePlaying = false;
+    
+    const roomRef = db.ref('rooms/' + GameState.roomId);
+    roomRef.update({
+        status: 'waiting',
+        step: 'lobby',
+        'gameData/directorTitle': '',
+        'gameData/directorDescription': '',
+        'gameData/frames': [],
+        'gameData/script': '',
+        'gameData/audio': null
+    }).then(() => {
+        const players = GameState.players || {};
+        Object.keys(players).forEach(playerId => {
+            roomRef.child('players/' + playerId + '/role').remove();
+        });
+        GameState.role = null;
+        showScreen('lobbyScreen');
+        updateLobby();
+    }).catch(err => {
+        console.error('Erro ao reiniciar:', err);
+        alert('Erro ao reiniciar. Tente novamente.');
+    });
+}
+
+function exitResult() {
+    if (resultInterval) {
+        clearInterval(resultInterval);
+        resultInterval = null;
+    }
+    isMoviePlaying = false;
+    leaveRoom();
 }
 
 // ============ INICIALIZAÇÃO ============
