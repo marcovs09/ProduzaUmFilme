@@ -326,7 +326,7 @@ function createRoom() {
     });
 }
 
-// ============ LOBBY (CORRIGIDO - TODOS OS MODOS) ============
+// ============ LOBBY (CORRIGIDO) ============
 function listenRoomChanges() {
     const roomRef = db.ref('rooms/' + GameState.roomId);
     roomRef.on('value', snapshot => {
@@ -358,6 +358,7 @@ function listenRoomChanges() {
         const playerCount = GameState.maxPlayers;
         const movieTitle = data.gameData?.directorTitle || '';
         
+        // ============ SELEÇÃO DE CARGOS ============
         if (data.status === 'roles') {
             if (GameState.currentScreen !== 'roleSelectionScreen') {
                 showScreen('roleSelectionScreen');
@@ -369,14 +370,11 @@ function listenRoomChanges() {
             return;
         }
         
+        // ============ JOGO EM ANDAMENTO ============
         if (data.status === 'playing') {
-            // ============================================================
-            // MODOS 2 e 3: NÃO TEM ROTEIRISTA
-            // ============================================================
             
             // --- ETAPA DO DIRETOR (APENAS MODO 3 e 4) ---
             if (currentStep === 'director') {
-                // Modo 2 NÃO tem Diretor - corrige automaticamente
                 if (playerCount === 2) {
                     console.warn('⚠️ Modo 2 sem Diretor, mas step=director. Corrigindo para animator...');
                     const roomRefUpdate = db.ref('rooms/' + GameState.roomId);
@@ -496,27 +494,8 @@ function updateLobby() {
 document.getElementById('startGameBtn').addEventListener('click', () => {
     if (!GameState.isHost) return;
     const roomRef = db.ref('rooms/' + GameState.roomId);
-    const playerCount = GameState.maxPlayers;
-    
-    // 🔧 CORREÇÃO: Define a primeira etapa correta para cada modo
-    let firstStep;
-    if (playerCount === 2) {
-        // Modo 2: começa direto no Animador
-        firstStep = 'animator';
-    } else if (playerCount === 3) {
-        // Modo 3: começa no Diretor
-        firstStep = 'director';
-    } else {
-        // Modo 4: começa no Diretor
-        firstStep = 'director';
-    }
-    
-    console.log('🎬 Iniciando partida com', playerCount, 'jogadores - Primeira etapa:', firstStep);
-    
-    roomRef.update({ 
-        status: 'playing', 
-        step: firstStep 
-    });
+    // 🔧 CORREÇÃO: Vai para a tela de seleção de cargos para TODOS os modos
+    roomRef.update({ status: 'roles', step: 'roles' });
 });
 
 document.getElementById('copyCodeBtn').addEventListener('click', () => {
@@ -565,7 +544,7 @@ function leaveRoom() {
     showScreen('homeScreen');
 }
 
-// ============ SELEÇÃO DE CARGOS ============
+// ============ SELEÇÃO DE CARGOS (CORRIGIDA) ============
 function getRolesForMode(playerCount) {
     if (playerCount === 2) {
         return [
@@ -653,6 +632,7 @@ function setupRoles(data) {
     
     if (takenCount >= totalRoles) {
         document.getElementById('rolesStatus').textContent = '✅ Todos os cargos escolhidos! Iniciando...';
+        // 🔧 CORREÇÃO: Inicia o jogo com a primeira etapa correta para cada modo
         setTimeout(() => {
             const roomRef = db.ref('rooms/' + GameState.roomId);
             roomRef.once('value').then(snap => {
@@ -664,7 +644,7 @@ function setupRoles(data) {
                         if (p.role) freshTaken++;
                     });
                     if (freshTaken >= totalRoles) {
-                        // Chama o startGame com a primeira etapa correta
+                        // Define a primeira etapa baseada no modo
                         const playerCount = GameState.maxPlayers;
                         let firstStep;
                         if (playerCount === 2) {
@@ -672,6 +652,7 @@ function setupRoles(data) {
                         } else {
                             firstStep = 'director';
                         }
+                        console.log('🎬 Iniciando partida com', playerCount, 'jogadores - Primeira etapa:', firstStep);
                         const roomRefUpdate = db.ref('rooms/' + GameState.roomId);
                         roomRefUpdate.update({ status: 'playing', step: firstStep });
                     }
@@ -1143,12 +1124,10 @@ function finishAnimation() {
     const roomRef = db.ref('rooms/' + GameState.roomId);
     const playerCount = GameState.maxPlayers;
     
-    // 🔧 CORREÇÃO: Próxima etapa baseada no modo
     let nextStep;
     if (playerCount === 4) {
         nextStep = 'screenwriter';
     } else {
-        // Modo 2 ou 3: vai direto para o Dublador
         nextStep = 'voice-actor';
     }
     
