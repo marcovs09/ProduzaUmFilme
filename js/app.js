@@ -25,8 +25,25 @@ const GameState = {
     lastStep: null
 };
 
-// ============ CONSTANTES ============
-const CHARACTERS = ['🦊', '🐱', '🐶', '🐰', '🐼', '🐨', '🦁', '🐯', '🐮', '🐷', '🐸', '🐵', '🦄', '🐲', '🦋', '🐙'];
+// ============ PERSONAGENS PERSONALIZADOS ============
+const CHARACTERS = [
+    { name: 'Personagem 1', image: 'https://i.ibb.co/mryc6mxS/IMG-20260903-132043.png' },
+    { name: 'Personagem 2', image: 'https://i.ibb.co/fzQCzTVq/IMG-20260903-132109.png' },
+    { name: 'Personagem 3', image: 'https://i.ibb.co/DHbnWfQW/IMG-20260903-132147.png' },
+    { name: 'Personagem 4', image: 'https://i.ibb.co/dCZdGbq/IMG-20260903-132222.png' },
+    { name: 'Personagem 5', image: 'https://i.ibb.co/bjs04VQF/IMG-20260903-132251.png' },
+    { name: 'Personagem 6', image: 'https://i.ibb.co/MyLxg50s/IMG-20260903-132315.png' },
+    { name: 'Personagem 7', image: 'https://i.ibb.co/JRL9vXCt/IMG-20260903-132333.png' },
+    { name: 'Personagem 8', image: 'https://i.ibb.co/jPkq23bJ/IMG-20260903-132411.png' },
+    { name: 'Personagem 9', image: 'https://i.ibb.co/hx9D7GFT/IMG-20260903-132438.png' },
+    { name: 'Personagem 10', image: 'https://i.ibb.co/VWcgP2nZ/IMG-20260903-132504.png' },
+    { name: 'Personagem 11', image: 'https://i.ibb.co/gZVTvCC1/IMG-20260903-132544.png' },
+    { name: 'Personagem 12', image: 'https://i.ibb.co/DDVKD6vg/IMG-20260903-132605.png' },
+    { name: 'Personagem 13', image: 'https://i.ibb.co/3Y04mCrB/IMG-20260903-133215.png' },
+    { name: 'Personagem 14', image: 'https://i.ibb.co/HDwxJ2q8/IMG-20260903-133148.png' },
+    { name: 'Personagem 15', image: 'https://i.ibb.co/Zpb32fc2/IMG-20260903-133110.png' },
+    { name: 'Personagem 16', image: 'https://i.ibb.co/tTvrqGVj/IMG-20260903-133045.png' }
+];
 
 // ============ VARIÁVEIS GLOBAIS ============
 let selectedCharacter = null;
@@ -135,16 +152,18 @@ function showJoinModal(roomCode) {
                 <label>Escolha seu personagem</label>
                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px;">
                     ${CHARACTERS.map(char => `
-                        <div class="character-option join-char" data-char="${char}" style="
-                            padding: 10px;
+                        <div class="character-option join-char" data-char="${char.image}" style="
+                            padding: 8px;
                             border-radius: 8px;
                             border: 2px solid rgba(255,255,255,0.1);
                             background: rgba(255,255,255,0.05);
                             cursor: pointer;
                             text-align: center;
-                            font-size: 1.5rem;
                             transition: all 0.3s ease;
-                        ">${char}</div>
+                        ">
+                            <img src="${char.image}" alt="${char.name}" style="width: 40px; height: 40px; object-fit: contain; display: block; margin: 0 auto;" />
+                            <span style="font-size: 0.6rem; color: rgba(255,255,255,0.5); display: block; margin-top: 2px;">${char.name}</span>
+                        </div>
                     `).join('')}
                 </div>
             </div>
@@ -160,7 +179,10 @@ function showJoinModal(roomCode) {
     
     modal.querySelectorAll('.join-char').forEach(el => {
         el.addEventListener('click', () => {
-            modal.querySelectorAll('.join-char').forEach(e => e.style.borderColor = 'rgba(255,255,255,0.1)');
+            modal.querySelectorAll('.join-char').forEach(e => {
+                e.style.borderColor = 'rgba(255,255,255,0.1)';
+                e.style.background = 'rgba(255,255,255,0.05)';
+            });
             el.style.borderColor = 'var(--primary)';
             el.style.background = 'rgba(108, 60, 225, 0.2)';
             joinCharacter = el.dataset.char;
@@ -249,12 +271,15 @@ function setupCharacterSelection() {
     CHARACTERS.forEach(char => {
         const div = document.createElement('div');
         div.className = 'character-option';
-        div.textContent = char;
-        div.dataset.character = char;
+        div.innerHTML = `
+            <img src="${char.image}" alt="${char.name}" loading="lazy" />
+            <span class="char-name">${char.name}</span>
+        `;
+        div.dataset.character = char.image;
         div.addEventListener('click', () => {
             document.querySelectorAll('.character-option').forEach(el => el.classList.remove('selected'));
             div.classList.add('selected');
-            selectedCharacter = char;
+            selectedCharacter = char.image;
         });
         grid.appendChild(div);
     });
@@ -326,7 +351,7 @@ function createRoom() {
     });
 }
 
-// ============ LOBBY (CORRIGIDO) ============
+// ============ LOBBY ============
 function listenRoomChanges() {
     const roomRef = db.ref('rooms/' + GameState.roomId);
     roomRef.on('value', snapshot => {
@@ -358,7 +383,6 @@ function listenRoomChanges() {
         const playerCount = GameState.maxPlayers;
         const movieTitle = data.gameData?.directorTitle || '';
         
-        // ============ SELEÇÃO DE CARGOS ============
         if (data.status === 'roles') {
             if (GameState.currentScreen !== 'roleSelectionScreen') {
                 showScreen('roleSelectionScreen');
@@ -370,13 +394,9 @@ function listenRoomChanges() {
             return;
         }
         
-        // ============ JOGO EM ANDAMENTO ============
         if (data.status === 'playing') {
-            
-            // --- ETAPA DO DIRETOR (APENAS MODO 3 e 4) ---
             if (currentStep === 'director') {
                 if (playerCount === 2) {
-                    console.warn('⚠️ Modo 2 sem Diretor, mas step=director. Corrigindo para animator...');
                     const roomRefUpdate = db.ref('rooms/' + GameState.roomId);
                     roomRefUpdate.update({ step: 'animator' });
                     GameState.lastStep = currentStep;
@@ -393,7 +413,6 @@ function listenRoomChanges() {
                 return;
             }
             
-            // --- ETAPA DO ANIMADOR (TODOS OS MODOS) ---
             if (currentStep === 'animator') {
                 if (playerRole === 'animator') {
                     showScreen('animatorScreen');
@@ -405,10 +424,8 @@ function listenRoomChanges() {
                 return;
             }
             
-            // --- ETAPA DO ROTEIRISTA (APENAS MODO 4) ---
             if (currentStep === 'screenwriter') {
                 if (playerCount !== 4) {
-                    console.warn('⚠️ Modo sem Roteirista, mas step=screenwriter. Corrigindo para voice-actor...');
                     const roomRefUpdate = db.ref('rooms/' + GameState.roomId);
                     roomRefUpdate.update({ step: 'voice-actor' });
                     GameState.lastStep = currentStep;
@@ -425,7 +442,6 @@ function listenRoomChanges() {
                 return;
             }
             
-            // --- ETAPA DO DUBLADOR (TODOS OS MODOS) ---
             if (currentStep === 'voice-actor') {
                 if (playerRole === 'voice-actor') {
                     showScreen('voiceActorScreen');
@@ -437,7 +453,6 @@ function listenRoomChanges() {
                 return;
             }
             
-            // --- RESULTADO ---
             if (currentStep === 'result') {
                 showScreen('resultScreen');
                 loadResultData(data);
@@ -461,8 +476,13 @@ function updateLobby() {
     Object.values(players).forEach(p => {
         const card = document.createElement('div');
         card.className = 'player-card';
+        
+        const avatarHtml = p.character && p.character.startsWith('http') 
+            ? `<img src="${p.character}" alt="${p.name}" />`
+            : `<span style="font-size: 2rem;">${p.character || '🎭'}</span>`;
+        
         card.innerHTML = `
-            <span class="avatar">${p.character || '🎭'}</span>
+            <div class="avatar">${avatarHtml}</div>
             <div class="name">${p.name}</div>
             <div class="status">${p.isHost ? '👑 Criador' : '🎭 Jogador'}</div>
         `;
@@ -494,7 +514,6 @@ function updateLobby() {
 document.getElementById('startGameBtn').addEventListener('click', () => {
     if (!GameState.isHost) return;
     const roomRef = db.ref('rooms/' + GameState.roomId);
-    // 🔧 CORREÇÃO: Vai para a tela de seleção de cargos para TODOS os modos
     roomRef.update({ status: 'roles', step: 'roles' });
 });
 
@@ -544,7 +563,7 @@ function leaveRoom() {
     showScreen('homeScreen');
 }
 
-// ============ SELEÇÃO DE CARGOS (CORRIGIDA) ============
+// ============ SELEÇÃO DE CARGOS ============
 function getRolesForMode(playerCount) {
     if (playerCount === 2) {
         return [
@@ -632,7 +651,6 @@ function setupRoles(data) {
     
     if (takenCount >= totalRoles) {
         document.getElementById('rolesStatus').textContent = '✅ Todos os cargos escolhidos! Iniciando...';
-        // 🔧 CORREÇÃO: Inicia o jogo com a primeira etapa correta para cada modo
         setTimeout(() => {
             const roomRef = db.ref('rooms/' + GameState.roomId);
             roomRef.once('value').then(snap => {
@@ -644,7 +662,6 @@ function setupRoles(data) {
                         if (p.role) freshTaken++;
                     });
                     if (freshTaken >= totalRoles) {
-                        // Define a primeira etapa baseada no modo
                         const playerCount = GameState.maxPlayers;
                         let firstStep;
                         if (playerCount === 2) {
@@ -1322,23 +1339,43 @@ let mediaRecorder = null;
 let audioChunks = [];
 let recordedAudio = null;
 let isRecording = false;
+let recordingStartTime = 0;
+let recordingTimerInterval = null;
+let audioDuration = 0;
 
 let voicePreviewFrames = [];
 let voiceIsPlaying = false;
 let voiceIntervalId = null;
 let voiceCurrentFrame = 0;
 
+let timeBarElement = null;
+let timeProgressElement = null;
+let currentTimeDisplay = null;
+let totalTimeDisplay = null;
+
 function loadVoiceActorData(data) {
     console.log('🔄 Dublador carregado com dados:', data);
     console.log('📝 Modo:', GameState.maxPlayers, 'jogadores');
     
+    timeBarElement = document.getElementById('timeBar');
+    timeProgressElement = document.getElementById('timeProgress');
+    currentTimeDisplay = document.getElementById('currentTimeDisplay');
+    totalTimeDisplay = document.getElementById('totalTimeDisplay');
+    
     if (data.gameData && data.gameData.frames && data.gameData.frames.length > 0) {
         voicePreviewFrames = data.gameData.frames;
+        const totalFrames = voicePreviewFrames.length;
+        const fps = 6;
+        audioDuration = totalFrames / fps;
+        totalTimeDisplay.textContent = formatTime(audioDuration);
     } else {
         voicePreviewFrames = [];
+        audioDuration = 0;
+        totalTimeDisplay.textContent = '00:00';
     }
     
     setupVoicePreviewCanvas();
+    resetTimeline();
     
     if (data.gameData && data.gameData.script) {
         document.getElementById('scriptDisplay').textContent = data.gameData.script;
@@ -1371,6 +1408,25 @@ function loadVoiceActorData(data) {
     document.getElementById('voicePlayBtn').onclick = playVoicePreview;
     document.getElementById('voicePauseBtn').onclick = pauseVoicePreview;
     document.getElementById('voiceRestartBtn').onclick = restartVoicePreview;
+}
+
+function formatTime(seconds) {
+    if (isNaN(seconds) || seconds < 0) return '00:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+function updateTimeline(currentTime) {
+    if (!timeProgressElement || !currentTimeDisplay) return;
+    const progress = audioDuration > 0 ? Math.min((currentTime / audioDuration) * 100, 100) : 0;
+    timeProgressElement.style.width = progress + '%';
+    currentTimeDisplay.textContent = formatTime(currentTime);
+}
+
+function resetTimeline() {
+    if (timeProgressElement) timeProgressElement.style.width = '0%';
+    if (currentTimeDisplay) currentTimeDisplay.textContent = '00:00';
 }
 
 function setupVoicePreviewCanvas() {
@@ -1408,15 +1464,18 @@ function playVoicePreview() {
     voiceIsPlaying = true;
     const canvas = document.getElementById('voicePreviewCanvas');
     const ctx = canvas.getContext('2d');
-    const delay = 200;
+    const delay = 1000 / 6;
+    let elapsed = 0;
     
     if (voiceCurrentFrame >= voicePreviewFrames.length) {
         voiceCurrentFrame = 0;
+        elapsed = 0;
     }
     
     voiceIntervalId = setInterval(() => {
         if (voiceCurrentFrame >= voicePreviewFrames.length) {
             voiceCurrentFrame = 0;
+            elapsed = 0;
         }
         
         const frame = voicePreviewFrames[voiceCurrentFrame];
@@ -1429,6 +1488,8 @@ function playVoicePreview() {
             img.src = frame;
         }
         voiceCurrentFrame++;
+        elapsed += delay / 1000;
+        updateTimeline(elapsed);
     }, delay);
 }
 
@@ -1443,6 +1504,7 @@ function pauseVoicePreview() {
 function restartVoicePreview() {
     pauseVoicePreview();
     voiceCurrentFrame = 0;
+    resetTimeline();
     const canvas = document.getElementById('voicePreviewCanvas');
     const ctx = canvas.getContext('2d');
     if (voicePreviewFrames.length > 0 && voicePreviewFrames[0]) {
@@ -1472,15 +1534,27 @@ async function startRecording() {
             document.getElementById('recordingStatus').textContent = '✅ Gravação concluída!';
             document.getElementById('recordingStatus').className = 'recording-status';
             document.getElementById('recordBtn').textContent = '🔴 GRAVAR';
+            if (recordingTimerInterval) {
+                clearInterval(recordingTimerInterval);
+                recordingTimerInterval = null;
+            }
         };
         
         mediaRecorder.start();
         isRecording = true;
+        recordingStartTime = Date.now();
+        
         document.getElementById('recordBtn').disabled = true;
         document.getElementById('stopBtn').disabled = false;
         document.getElementById('recordingStatus').textContent = '🔴 Gravando...';
         document.getElementById('recordingStatus').className = 'recording-status recording';
         document.getElementById('recordBtn').textContent = '⏳ GRAVANDO...';
+        
+        resetTimeline();
+        recordingTimerInterval = setInterval(() => {
+            const elapsed = (Date.now() - recordingStartTime) / 1000;
+            updateTimeline(elapsed);
+        }, 100);
         
     } catch (err) {
         console.error('Erro ao acessar microfone:', err);
@@ -1496,6 +1570,10 @@ function stopRecording() {
         document.getElementById('stopBtn').disabled = true;
         mediaRecorder.stream.getTracks().forEach(track => track.stop());
         document.getElementById('recordBtn').textContent = '🔴 REGRAVAR';
+        if (recordingTimerInterval) {
+            clearInterval(recordingTimerInterval);
+            recordingTimerInterval = null;
+        }
     }
 }
 
@@ -1504,8 +1582,25 @@ function playRecordedAudio() {
         const audio = new Audio(URL.createObjectURL(recordedAudio));
         audio.play();
         document.getElementById('recordingStatus').textContent = '▶️ Reproduzindo...';
+        
+        resetTimeline();
+        const startTime = Date.now();
+        const duration = audio.duration || 3;
+        
+        const playbackInterval = setInterval(() => {
+            const elapsed = (Date.now() - startTime) / 1000;
+            if (elapsed >= duration) {
+                clearInterval(playbackInterval);
+                updateTimeline(duration);
+                document.getElementById('recordingStatus').textContent = '✅ Gravação concluída!';
+                return;
+            }
+            updateTimeline(elapsed);
+        }, 100);
+        
         audio.onended = () => {
             document.getElementById('recordingStatus').textContent = '✅ Gravação concluída!';
+            updateTimeline(duration);
         };
     }
 }
@@ -1519,6 +1614,7 @@ function resetRecording() {
     document.getElementById('recordingStatus').className = 'recording-status';
     document.getElementById('recordBtn').textContent = '🔴 GRAVAR';
     document.getElementById('recordBtn').disabled = false;
+    resetTimeline();
 }
 
 function finishVoice() {
@@ -1612,6 +1708,7 @@ function createVideoFromFramesAndAudio(frames, audioBlob, videoElement) {
     let audioSource = null;
     let audioDestination = null;
     let isAudioReady = false;
+    let audioBufferDuration = 0;
     
     if (audioBlob) {
         try {
@@ -1622,6 +1719,7 @@ function createVideoFromFramesAndAudio(frames, audioBlob, videoElement) {
                 try {
                     const arrayBuffer = e.target.result;
                     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    audioBufferDuration = audioBuffer.duration;
                     
                     audioSource = audioContext.createBufferSource();
                     audioSource.buffer = audioBuffer;
@@ -1634,6 +1732,7 @@ function createVideoFromFramesAndAudio(frames, audioBlob, videoElement) {
                     });
                     
                     isAudioReady = true;
+                    console.log('✅ Áudio carregado, duração:', audioBufferDuration);
                 } catch (err) {
                     console.error('Erro ao processar áudio:', err);
                 }
@@ -1648,6 +1747,8 @@ function createVideoFromFramesAndAudio(frames, audioBlob, videoElement) {
     let animationInterval = null;
     let isPlaying = false;
     let audioStarted = false;
+    let animationStartTime = 0;
+    let pausedTime = 0;
     
     if (frames[0]) {
         const img = new Image();
@@ -1666,14 +1767,13 @@ function createVideoFromFramesAndAudio(frames, audioBlob, videoElement) {
             audioContext.resume();
         }
         
-        frameIndex = 0;
-        const delay = 1000 / 6;
-        
         if (audioSource && isAudioReady && !audioStarted) {
             try {
                 audioSource.start(0);
                 audioStarted = true;
+                console.log('🎵 Áudio iniciado');
                 audioSource.onended = () => {
+                    console.log('🎵 Áudio terminou');
                     pauseAnimation();
                 };
             } catch (e) {
@@ -1681,10 +1781,25 @@ function createVideoFromFramesAndAudio(frames, audioBlob, videoElement) {
             }
         }
         
+        animationStartTime = Date.now() - pausedTime * 1000;
+        const delay = 1000 / 6;
+        
+        if (frameIndex >= frames.length) {
+            frameIndex = 0;
+        }
+        
         animationInterval = setInterval(() => {
+            if (isAudioReady && audioBufferDuration > 0) {
+                const elapsed = (Date.now() - animationStartTime) / 1000;
+                if (elapsed >= audioBufferDuration) {
+                    pauseAnimation();
+                    return;
+                }
+            }
+            
             if (frameIndex >= frames.length) {
                 frameIndex = 0;
-                if (audioSource && isAudioReady) {
+                if (audioSource && isAudioReady && audioStarted) {
                     try {
                         audioSource.start(0);
                     } catch (e) {}
@@ -1714,6 +1829,7 @@ function createVideoFromFramesAndAudio(frames, audioBlob, videoElement) {
             try {
                 audioSource.stop();
                 audioStarted = false;
+                pausedTime = (Date.now() - animationStartTime) / 1000;
             } catch (e) {}
         }
         if (audioContext) {
@@ -1724,6 +1840,7 @@ function createVideoFromFramesAndAudio(frames, audioBlob, videoElement) {
     function restartAnimation() {
         pauseAnimation();
         frameIndex = 0;
+        pausedTime = 0;
         audioStarted = false;
         
         if (frames[0]) {
@@ -1735,7 +1852,7 @@ function createVideoFromFramesAndAudio(frames, audioBlob, videoElement) {
             img.src = frames[0];
         }
         
-        if (audioSource && isAudioReady && audioBlob) {
+        if (audioBlob && isAudioReady) {
             try {
                 audioSource = audioContext.createBufferSource();
                 const reader = new FileReader();
@@ -1744,6 +1861,7 @@ function createVideoFromFramesAndAudio(frames, audioBlob, videoElement) {
                     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
                     audioSource.buffer = audioBuffer;
                     audioSource.connect(audioDestination);
+                    isAudioReady = true;
                 };
                 reader.readAsArrayBuffer(audioBlob);
             } catch (e) {}
@@ -1773,6 +1891,11 @@ function createVideoFromFramesAndAudio(frames, audioBlob, videoElement) {
     setTimeout(() => {
         playAnimation();
     }, 800);
+    
+    videoElement.textContent = '🎬 Carregando filme...';
+    setTimeout(() => {
+        videoElement.textContent = '';
+    }, 2000);
 }
 
 function downloadMovie() {
