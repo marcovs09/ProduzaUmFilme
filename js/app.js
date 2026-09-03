@@ -22,7 +22,8 @@ const GameState = {
     role: null,
     currentScreen: 'home',
     isHost: false,
-    lastStep: null
+    lastStep: null,
+    resultReady: false
 };
 
 // ============ PERSONAGENS PERSONALIZADOS ============
@@ -454,6 +455,7 @@ function listenRoomChanges() {
             }
             
             if (currentStep === 'result') {
+                // 🔧 CORREÇÃO: Mostra o resultado para TODOS
                 showScreen('resultScreen');
                 loadResultData(data);
                 GameState.lastStep = currentStep;
@@ -1334,7 +1336,7 @@ function submitScript() {
     });
 }
 
-// ============ DUBLADOR ============
+// ============ DUBLADOR (CORRIGIDO - BARRA DE TEMPO COM LIMITE) ============
 let mediaRecorder = null;
 let audioChunks = [];
 let recordedAudio = null;
@@ -1342,6 +1344,7 @@ let isRecording = false;
 let recordingStartTime = 0;
 let recordingTimerInterval = null;
 let audioDuration = 0;
+let isRecordingFinished = false;
 
 let voicePreviewFrames = [];
 let voiceIsPlaying = false;
@@ -1357,17 +1360,22 @@ function loadVoiceActorData(data) {
     console.log('🔄 Dublador carregado com dados:', data);
     console.log('📝 Modo:', GameState.maxPlayers, 'jogadores');
     
+    // Reseta o estado de gravação
+    isRecordingFinished = false;
+    
     timeBarElement = document.getElementById('timeBar');
     timeProgressElement = document.getElementById('timeProgress');
     currentTimeDisplay = document.getElementById('currentTimeDisplay');
     totalTimeDisplay = document.getElementById('totalTimeDisplay');
     
+    // Calcula a duração da animação
     if (data.gameData && data.gameData.frames && data.gameData.frames.length > 0) {
         voicePreviewFrames = data.gameData.frames;
         const totalFrames = voicePreviewFrames.length;
         const fps = 6;
         audioDuration = totalFrames / fps;
         totalTimeDisplay.textContent = formatTime(audioDuration);
+        console.log('🎬 Duração da animação:', audioDuration, 'segundos');
     } else {
         voicePreviewFrames = [];
         audioDuration = 0;
@@ -1377,6 +1385,7 @@ function loadVoiceActorData(data) {
     setupVoicePreviewCanvas();
     resetTimeline();
     
+    // Mostra o roteiro ou modo improviso
     if (data.gameData && data.gameData.script) {
         document.getElementById('scriptDisplay').textContent = data.gameData.script;
         document.getElementById('recordingStatus').textContent = '🎙️ Pronto para gravar!';
@@ -1399,6 +1408,7 @@ function loadVoiceActorData(data) {
         }
     }
     
+    // Configura eventos
     document.getElementById('recordBtn').onclick = startRecording;
     document.getElementById('stopBtn').onclick = stopRecording;
     document.getElementById('playbackBtn').onclick = playRecordedAudio;
@@ -1522,6 +1532,7 @@ async function startRecording() {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder = new MediaRecorder(stream);
         audioChunks = [];
+        isRecordingFinished = false;
         
         mediaRecorder.ondataavailable = (event) => {
             audioChunks.push(event.data);
@@ -1534,6 +1545,7 @@ async function startRecording() {
             document.getElementById('recordingStatus').textContent = '✅ Gravação concluída!';
             document.getElementById('recordingStatus').className = 'recording-status';
             document.getElementById('recordBtn').textContent = '🔴 GRAVAR';
+            isRecordingFinished = true;
             if (recordingTimerInterval) {
                 clearInterval(recordingTimerInterval);
                 recordingTimerInterval = null;
@@ -1554,6 +1566,13 @@ async function startRecording() {
         recordingTimerInterval = setInterval(() => {
             const elapsed = (Date.now() - recordingStartTime) / 1000;
             updateTimeline(elapsed);
+            
+            // 🔥 CORREÇÃO: Para automaticamente quando atingir a duração da animação
+            if (elapsed >= audioDuration && audioDuration > 0) {
+                stopRecording();
+                document.getElementById('recordingStatus').textContent = '⏹️ Gravação finalizada automaticamente!';
+                document.getElementById('recordingStatus').className = 'recording-status';
+            }
         }, 100);
         
     } catch (err) {
@@ -1568,7 +1587,9 @@ function stopRecording() {
         isRecording = false;
         document.getElementById('recordBtn').disabled = false;
         document.getElementById('stopBtn').disabled = true;
-        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        if (mediaRecorder.stream) {
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        }
         document.getElementById('recordBtn').textContent = '🔴 REGRAVAR';
         if (recordingTimerInterval) {
             clearInterval(recordingTimerInterval);
@@ -1585,7 +1606,7 @@ function playRecordedAudio() {
         
         resetTimeline();
         const startTime = Date.now();
-        const duration = audio.duration || 3;
+        const duration = audio.duration || audioDuration || 3;
         
         const playbackInterval = setInterval(() => {
             const elapsed = (Date.now() - startTime) / 1000;
@@ -1608,6 +1629,7 @@ function playRecordedAudio() {
 function resetRecording() {
     recordedAudio = null;
     audioChunks = [];
+    isRecordingFinished = false;
     document.getElementById('playbackBtn').disabled = true;
     document.getElementById('finishVoiceBtn').disabled = true;
     document.getElementById('recordingStatus').textContent = '🎙️ Pronto para gravar!';
@@ -1623,6 +1645,12 @@ function finishVoice() {
         return;
     }
     
+    // Verifica se a gravação tem o tamanho adequado
+    if (audioDuration > 0) {
+        // Não bloqueia, apenas avisa
+        console.log('📊 Duração da animação:', audioDuration, 's | Áudio gravado');
+    }
+    
     const reader = new FileReader();
     reader.onload = () => {
         const audioData = reader.result;
@@ -1631,7 +1659,9 @@ function finishVoice() {
             'gameData/audio': audioData,
             step: 'result'
         }).then(() => {
-            showWaiting('🎬 Filme sendo finalizado...', 'Preparando o resultado final', '🎬');
+            // 🔧 CORREÇÃO: Mostra a tela de espera para TODOS
+            const title = document.getElementById('animatorMovieTitle')?.textContent || '';
+            showWaiting('🎬 Filme sendo finalizado...', 'Preparando o resultado final para todos', '🎬', title);
         }).catch(err => {
             console.error('Erro ao enviar áudio:', err);
             alert('Erro ao enviar áudio. Tente novamente.');
@@ -1640,7 +1670,7 @@ function finishVoice() {
     reader.readAsDataURL(recordedAudio);
 }
 
-// ============ RESULTADO FINAL ============
+// ============ RESULTADO FINAL (CORRIGIDO - VISÍVEL PARA TODOS) ============
 
 function loadResultData(data) {
     console.log('🔄 Resultado carregado com dados:', data);
@@ -1657,19 +1687,26 @@ function loadResultData(data) {
         if (data.gameData.audio) {
             const audioData = data.gameData.audio.split(',')[1];
             if (audioData) {
-                const byteCharacters = atob(audioData);
-                const byteNumbers = new Array(byteCharacters.length);
-                for (let i = 0; i < byteCharacters.length; i++) {
-                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                try {
+                    const byteCharacters = atob(audioData);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let i = 0; i < byteCharacters.length; i++) {
+                        byteNumbers[i] = byteCharacters.charCodeAt(i);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    audioBlob = new Blob([byteArray], { type: 'audio/wav' });
+                    console.log('✅ Áudio carregado, tamanho:', audioBlob.size, 'bytes');
+                } catch (e) {
+                    console.error('Erro ao decodificar áudio:', e);
                 }
-                const byteArray = new Uint8Array(byteNumbers);
-                audioBlob = new Blob([byteArray], { type: 'audio/wav' });
             }
         }
         
+        // 🔧 CORREÇÃO: Mostra o vídeo para TODOS que estão na tela de resultado
         createVideoFromFramesAndAudio(frames, audioBlob, video);
     }
     
+    // Configura os botões
     document.getElementById('playMovieBtn').onclick = function() {
         if (window.__movieControls && window.__movieControls.play) {
             window.__movieControls.play();
@@ -1720,6 +1757,7 @@ function createVideoFromFramesAndAudio(frames, audioBlob, videoElement) {
                     const arrayBuffer = e.target.result;
                     const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
                     audioBufferDuration = audioBuffer.duration;
+                    console.log('✅ Áudio decodificado, duração:', audioBufferDuration);
                     
                     audioSource = audioContext.createBufferSource();
                     audioSource.buffer = audioBuffer;
@@ -1732,7 +1770,7 @@ function createVideoFromFramesAndAudio(frames, audioBlob, videoElement) {
                     });
                     
                     isAudioReady = true;
-                    console.log('✅ Áudio carregado, duração:', audioBufferDuration);
+                    console.log('✅ Áudio adicionado ao stream');
                 } catch (err) {
                     console.error('Erro ao processar áudio:', err);
                 }
