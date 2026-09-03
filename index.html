@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>🎬 Produza Um Filme</title>
     <link rel="stylesheet" href="css/styles.css" />
     <link rel="stylesheet" href="css/animations.css" />
@@ -278,7 +278,7 @@
             </div>
         </div>
 
-        <!-- TELA DO DUBLADOR -->
+        <!-- ============ TELA DO DUBLADOR (COM BARRA DE TEMPO) ============ -->
         <div id="voiceActorScreen" class="screen">
             <div class="voice-container">
                 <div class="voice-header">
@@ -302,6 +302,15 @@
                     <div id="scriptDisplay" class="script-text">
                         Aguardando roteiro...
                     </div>
+                </div>
+
+                <!-- 🔥 NOVA BARRA DE TEMPO -->
+                <div class="recording-timeline" id="recordingTimeline">
+                    <span class="time-label current" id="currentTimeDisplay">00:00</span>
+                    <div class="time-bar" id="timeBar">
+                        <div class="progress" id="timeProgress" style="width: 0%;"></div>
+                    </div>
+                    <span class="time-label" id="totalTimeDisplay">00:00</span>
                 </div>
 
                 <div class="recording-area">
